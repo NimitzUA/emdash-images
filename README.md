@@ -40,7 +40,7 @@ Pass one options object to `imageService()` and pass its private-prefix lists to
 | `deniedStorageKeyPrefixes` | `[]` | Storage-key prefixes excluded from public transforms and warm-up. Values are storage keys, such as `restricted/`, not media URLs. |
 | `deniedPagePathPrefixes` | `[]` | Page-path prefixes excluded from warm-up, such as `/members`. |
 
-The cache directory is resolved when the service runs: `IMAGE_CACHE_DIR`, then the configured `cacheDirectory`, then `.dev/image-cache`. The environment value is not captured into the site build.
+The image service resolves its cache directory at request time: `IMAGE_CACHE_DIR`, then the configured `cacheDirectory`, then `.dev/image-cache`. The environment value is not captured into the site build. CLI `warm` and `cleanup` use `IMAGE_CACHE_DIR` from the process environment or `--env-file` before the configured `cacheDirectory`; relative paths resolve against the current working directory.
 
 Changing AVIF or WebP encoder settings changes `imageCacheSettings8` and therefore the cache namespace. Treat encoder changes as a cache migration: deploy the new settings, warm the new variants, then run cache cleanup.
 
@@ -162,7 +162,7 @@ Backfill and cleanup default to dry runs; `--write` applies backfill metadata an
 
 Backfill and cleanup connect to PostgreSQL using `DATABASE_URL` or `EMDASH_DATABASE_URL`; otherwise they use `PGHOST`, `PGPORT` (default `5432`), `PGDATABASE`, `PGUSER`, and optional `PGPASSWORD`. Maintenance supports PostgreSQL only; backfill reads original media from a local uploads directory only, set with `UPLOADS_DIR` (default `uploads`).
 
-Cleanup requires `IMAGE_CACHE_DIR` to name an existing local cache directory. Warm uses `cacheDirectory` from the config when supplied; otherwise its cache fallback is the process environment's `IMAGE_CACHE_DIR`, then `.dev/image-cache`. An `IMAGE_CACHE_DIR` value found only in `--env-file` does not set warm's cache fallback. Without `--origin`, warm reads a valid `PORT` or `SITE_PORT` for its local request origin and uses `EMDASH_SITE_URL` as the public origin when set (otherwise it uses the local origin); these URL settings can come from `--env-file`. With `--origin`, that URL is the request origin; `--public-origin` can set a different public origin and defaults to `--origin`.
+Cleanup uses `IMAGE_CACHE_DIR` from the process environment or `--env-file`, then `cacheDirectory` from the config, with relative paths resolved against the current working directory. It refuses when neither is set. Warm uses the same order and then falls back to `.dev/image-cache`. Backfill resolves `UPLOADS_DIR` against the current working directory (default `uploads`). Without `--origin`, warm reads a valid `PORT` or `SITE_PORT` for its local request origin and uses `EMDASH_SITE_URL` as the public origin when set (otherwise it uses the local origin); these URL settings can come from `--env-file`. With `--origin`, that URL is the request origin; `--public-origin` requires `--origin` and can set a different public origin. Both options must be absolute `http:` or `https:` URLs; invalid URLs exit with code `2`.
 
 The CLI exits with code `0` on success, `1` on an operational error or warm-up failures, `2` on invalid command-line usage, and `3` when backfill reports failed rows.
 

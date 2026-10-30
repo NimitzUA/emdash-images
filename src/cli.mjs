@@ -52,7 +52,7 @@ Options:
 
 Options:
   --origin <url>         Request origin; without it, warm the local site
-  --public-origin <url>  Public origin (defaults to --origin)
+  --public-origin <url>  Public origin (requires --origin; defaults to --origin)
   --config <path>        Load image options from a module
   --env-file <path>      Load environment variables from a file
   -h, --help             Show help`,
@@ -101,6 +101,25 @@ export async function runCli(argv, {
 			return 2;
 		}
 	}
+	if (parsed.values["public-origin"] !== undefined && parsed.values.origin === undefined) {
+		errorLog(`Option --public-origin requires --origin.\n\n${COMMAND_USAGE.warm}`);
+		return 2;
+	}
+
+	let requestOrigin;
+	let publicOrigin;
+	for (const [name, value] of [["origin", parsed.values.origin], ["public-origin", parsed.values["public-origin"]]]) {
+		if (value === undefined) continue;
+		try {
+			const url = new URL(value);
+			if (url.protocol !== "http:" && url.protocol !== "https:") throw new TypeError();
+			if (name === "origin") requestOrigin = url;
+			else publicOrigin = url;
+		} catch {
+			errorLog(`Option --${name} must be an absolute http(s) URL.\n\n${COMMAND_USAGE.warm}`);
+			return 2;
+		}
+	}
 
 	try {
 		let imageOptions = DEFAULT_IMAGE_OPTIONS;
@@ -123,34 +142,43 @@ export async function runCli(argv, {
 
 		const selectedCommands = { ...DEFAULT_COMMANDS, ...commands };
 		if (command === "backfill") {
+			const backfillEnv = {
+				...commandEnv,
+				UPLOADS_DIR: path.resolve(cwd, nonBlankString(commandEnv.UPLOADS_DIR) ?? "uploads"),
+			};
 			const result = await selectedCommands.backfillMediaRows({
 				args: parsed.values.write ? ["--write"] : [],
-				env: commandEnv,
+				env: backfillEnv,
 				deniedStorageKeyPrefixes: imageOptions.deniedStorageKeyPrefixes,
 			});
 			return result.exitCode;
 		}
 
 		if (command === "cleanup") {
+			const cacheDirectory = resolveCacheDirectory(commandEnv, imageOptions, cwd);
+			const cleanupEnv = cacheDirectory === undefined
+				? commandEnv
+				: { ...commandEnv, IMAGE_CACHE_DIR: cacheDirectory };
 			await selectedCommands.cleanupImageCache({
 				args: parsed.values.delete ? ["--delete"] : [],
-				env: commandEnv,
+				env: cleanupEnv,
 				encoder: imageOptions.encoder,
 				deniedStorageKeyPrefixes: imageOptions.deniedStorageKeyPrefixes,
 			});
 			return 0;
 		}
 
+		const cacheDirectory = resolveCacheDirectory(commandEnv, imageOptions, cwd);
 		const warmOptions = {
-			...(imageOptions.cacheDirectory === undefined ? {} : { cacheDirectory: imageOptions.cacheDirectory }),
+			...(cacheDirectory === undefined ? {} : { cacheDirectory }),
 			deniedStorageKeyPrefixes: imageOptions.deniedStorageKeyPrefixes,
 			deniedPagePathPrefixes: imageOptions.deniedPagePathPrefixes,
 		};
-		const summary = parsed.values.origin === undefined
+		const summary = requestOrigin === undefined
 			? await selectedCommands.warmLocalSite(commandEnv, warmOptions)
 			: await selectedCommands.warmPublicSite(
-				new URL(parsed.values.origin),
-				new URL(parsed.values["public-origin"] ?? parsed.values.origin),
+				requestOrigin,
+				publicOrigin ?? requestOrigin,
 				warmOptions,
 			);
 		return summary.failures?.length ? 1 : 0;
@@ -158,6 +186,16 @@ export async function runCli(argv, {
 		errorLog(errorMessage(error));
 		return 1;
 	}
+}
+
+function resolveCacheDirectory(commandEnv, imageOptions, cwd) {
+	const value = nonBlankString(commandEnv.IMAGE_CACHE_DIR) ?? nonBlankString(imageOptions.cacheDirectory);
+	return value === undefined ? undefined : path.resolve(cwd, value);
+}
+
+function nonBlankString(value) {
+	if (typeof value !== "string") return undefined;
+	return value.trim() || undefined;
 }
 
 function isPlainObject(value) {

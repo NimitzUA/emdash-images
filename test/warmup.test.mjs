@@ -236,12 +236,13 @@ test("warm-up renders pages before variants and reports the second pass as cache
 
 	const origin = new URL(`http://127.0.0.1:${server.address().port}`);
 	const firstRun = await warmPublicSite(origin, origin, { cacheDirectory });
-	assert.equal(firstRun.pagesRendered, 5);
-	assert.equal(firstRun.pagesRequested, 5);
+	assert.equal(firstRun.pagesRendered, 3);
+	assert.equal(firstRun.pagesRequested, 3);
 	assert.equal(firstRun.variants, 2);
 	assert.equal(firstRun.generated, 2);
 	assert.equal(firstRun.cached, 0);
-	assert.equal(firstImagePageCount, 5, "all pages should render before the first image request");
+	assert.equal(firstImagePageCount, 3, "all pages should render before the first image request");
+	assert.equal([...pagePaths].some((pagePath) => pagePath.startsWith("/uk")), false);
 	assert.equal(maximumVariants, 1, `expected one variant request at a time, saw ${maximumVariants}`);
 
 	pagePaths.clear();
