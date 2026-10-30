@@ -4,7 +4,7 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
 ## Steps
 
-1. **Install a tag.** Use the tag selected by the site. Check that the site uses EmDash 1.3, Astro 7, and Node 26 or later. The package needs its `astro`, `emdash`, and `sharp` peer dependencies; `pg` is installed as a package dependency.
+1. **Install from npm.** Run `npm install @nimitzua/emdash-images`. Check that the site uses EmDash 1.3, Astro 7, and Node 26 or later. The package needs its `astro`, `emdash`, and `sharp` peer dependencies; `pg` is installed as a package dependency.
 
 2. **Keep site options in one module.** Create or update `src/lib/image-options.mjs` with a default-exported options object. Set `deniedStorageKeyPrefixes` to storage-key prefixes (for example, `restricted/`) and `deniedPagePathPrefixes` to private page paths (for example, `/private`). They are separate settings. The package defaults both lists to empty. Import the same module as a default in `astro.config.mjs` and pass its path to CLI commands with `--config`.
 
