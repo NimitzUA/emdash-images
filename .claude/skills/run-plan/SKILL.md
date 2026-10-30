@@ -65,8 +65,11 @@ knows only the plan, the docs and `status.md`.
    wait for exit, Grep `^INSTALL ` in `WT/.scratch/tmp/install-main.log` and reply with that line
    and the lockfile status; never run the install yourself (it asks the user).
 4. On `worker_done`: `worker-release` (it closes the executor's terminal: `processAction`
-   `closed_agent_terminal`), read the report its spec names (`RUN/T<n>.md`, or
-   `RUN/T<n>.fix-<k>.md` in a fix round), update `status.md`. A report without a result
+   `closed_agent_terminal`). A receipt with `retained` and reason `user_takeover` after a
+   settled report leaves the idle terminal open even when nobody typed there: close it with
+   `orca terminal close --terminal <id>`, note it in `## Surprises`, and do not ask the user.
+   Read the report its spec names (`RUN/T<n>.md`, or `RUN/T<n>.fix-<k>.md` in a fix round),
+   update `status.md`. A report without a result
    line for each Acceptance item goes back to a fresh executor for the missing evidence before
    any review. A `failed` outcome whose report says "commit waits for
    1Password" left its changes staged in WT: escalate (section 6), and once the user has
