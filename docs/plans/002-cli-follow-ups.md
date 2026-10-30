@@ -114,4 +114,37 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `3dfe4ad` (`--no-ff` of `task/002-cli-follow-ups` onto `2ba1ab3`). Task commits:
+  T1 `5c9ce1b` (review 1 PASS), T2 `08a351b` (review 1 PASS). No FIX rounds. Gates: `GATES OK`;
+  `node src/bin.mjs warm --public-origin https://example.com` exit 2 with
+  `Option --public-origin requires --origin.`; no `/uk` in `src` (`git grep -n -e "/uk" -- src`
+  empty); lockfile unchanged, so no install; after merge `VERIFY OK`.
+- **Decisions:**
+  - Run: T1 and T2 ran one after the other, not in parallel, because both executors would share
+    one worktree (`check.sh` runs the whole suite; the review compares `git status`).
+  - T1: after the executor's commit failed on 1Password (see Surprises), the user confirmed
+    signing; a fresh commit-only executor committed the staged changes unchanged.
+  - Executors asked no questions.
+- **Surprises:**
+  - T1's executor could not sign its commit: the first attempt hung over 30 s, the retry printed
+    `error: 1Password: agent returned an error`, although `sign-probe.sh` printed `SIGN OK` at the
+    start of the run and right after. Most likely the signing request from the Codex terminal
+    waited for an approval nobody saw. The commit-only executor and T2's executor signed without
+    trouble once the user was watching.
+  - The reviewer role cannot run tests that bind a local port: `node --test test/warmup.test.mjs`
+    fails in its sandbox with `listen EPERM ... 127.0.0.1`; the same test passes in `check.sh`,
+    which the reviewer used instead.
+- **Deviations:** T1 was committed by a second, commit-only executor (spec `T1.commit.spec.md`)
+  instead of the executor that wrote it; the code is the first executor's, unchanged. No
+  amendments.
+- **Follow-ups:**
+  - No unit test covers a valid `--origin` with an invalid `--public-origin`; the reviewer ran it
+    by hand (`warm --origin https://example.com --public-origin mailto:x@example.com`: exit 2,
+    `Option --public-origin must be an absolute http(s) URL.`).
+  - With neither `IMAGE_CACHE_DIR` nor config `cacheDirectory`, `warm`'s `.dev/image-cache`
+    fallback (`src/warmup.mjs:358,363`) resolves against `process.cwd()`, not `runCli`'s `cwd`;
+    the same for the binary, visible to programmatic callers.
+  - The CLI trims config `cacheDirectory`; the image service resolves it untrimmed. They differ
+    only for a configured path with surrounding spaces.
+  - Tooling: the reviewer role cannot run port-binding tests directly (see Surprises).
+- **Proposed rules:** None: the run had no FIX findings.

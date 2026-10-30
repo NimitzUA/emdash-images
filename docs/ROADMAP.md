@@ -20,11 +20,10 @@ adopts the package on its own side.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first.
-5. **CLI follow-ups from plan 001 (next: plan 002).** `warm` still requests the source site's
-   `/uk/` pages (`src/warmup.mjs:299-301`), which fail on any other site. `warm` reads `IMAGE_CACHE_DIR` only from the process
-   environment, not from `--env-file`, and prefers the config's `cacheDirectory` while the image
-   service prefers `IMAGE_CACHE_DIR`; `--public-origin` without `--origin` is silently ignored;
-   smaller items in plan 001's Outcome, Follow-ups.
+5. **Small CLI follow-ups from plan 002.** A unit test for a valid `--origin` with an invalid
+   `--public-origin`; `warm`'s `.dev/image-cache` fallback resolves against `process.cwd()`, not
+   `runCli`'s `cwd`; the CLI trims config `cacheDirectory` while the service does not. Details in
+   plan 002's Outcome, Follow-ups.
 
 ## Out of scope
 
@@ -37,3 +36,8 @@ adopts the package on its own side.
    site it was cut from (symbol keys, usage strings, README and SKILL), and ships the
    `emdash-images` command (`backfill`, `cleanup`, `warm`) with `--config <module>` and
    `--env-file`; Postgres and local storage only.
+1. **CLI follow-ups — plan 002** (merge `3dfe4ad`). `warm` no longer requests the source site's
+   `/uk/` pages; `warm` and `cleanup` resolve the cache directory in the image service's order
+   (`IMAGE_CACHE_DIR` from the process environment or `--env-file`, then config
+   `cacheDirectory`) against the current directory; `UPLOADS_DIR` follows the current directory;
+   `--public-origin` requires `--origin`, and both must be absolute http(s) URLs.
