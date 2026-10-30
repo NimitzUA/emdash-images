@@ -15,7 +15,9 @@ adopts the package on its own side.
 1. **`Picture` component.** A package `Picture` component on `pictureSources`, designed from the
    package's own API. Open question: ADR-0002 keeps markup out of the package, so this item
    needs the owner's decision (and a new ADR if it stays).
-2. **Versioning and releases.** Choose and document a version and release process.
+2. **Versioning and releases (next: plan 003).** Decided in ADR-0003 (2026-10-31): npm registry
+   plus signed git tags, SemVer with the 0.x rule, hand-written `CHANGELOG.md`, the owner
+   releases by hand with a prepare/verify script. Next release 0.2.0.
 3. **CI.** Add CI for this repository.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
