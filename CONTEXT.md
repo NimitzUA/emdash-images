@@ -17,6 +17,8 @@ The package was incubated in the site workspace so changes could share one commi
 - **2026-10-27 — AVIF chroma.** T5 measured 1,027 variants: 4:2:0 saved 1.78% overall (25,310,108 bytes versus 25,767,644 bytes for 4:4:4) and encoded faster (2:04 versus 2:23). At 100% crops the results looked nearly identical, but 4:2:0 left a slight fringe on coloured text at an edge. The owner kept 4:4:4 to preserve that detail; the measured size saving was small.
 - **2026-10-28 — package boundary.** The owner chose the public MIT repository `nimitzua/emdash-images`, package name `@nimitzua/emdash-images`, EmDash plugin id `emdash-images`, and version 0.1.0. The plugin uses the `content:afterPublish` hook and declares `content:read`. Options stay in code. The package does not ship markup, private cases, or the custom route used by facadesystems.
 
+- **2026-10-30 — package-only scope.** The owner decided that this repository works on the package and its EmDash plugin only, without depending on any existing site. The facadesystems items below and open items 2 and 3 are out of scope; `docs/ROADMAP.md` carries the current list.
+
 ## Facadesystems cross-review notes
 
 The ADR records that both sites had strengths the other lacked, but it does not name those implementation differences. The one documented structural difference is that facadesystems uses a custom image route instead of Astro's `/_image`. Its route contract and the specific pipeline strengths from the cross-review are **to confirm with the facadesystems architect**; do not infer them from this site's plan 034 changes.
