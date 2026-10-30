@@ -11,7 +11,7 @@ import {
 } from "./layout.mjs";
 import { DEFAULT_IMAGE_OPTIONS } from "./options.mjs";
 
-const usage = "Usage: node scripts/deploy/cleanup-image-cache.mjs [--delete] | --help";
+const usage = "Usage: emdash-images cleanup [--delete] | --help";
 const TEMP_FILE_MAX_AGE_MS = 60 * 60 * 1000;
 const flatCacheNamePattern = /^[a-f\d]{64}\.(?:avif|webp)$/i;
 const categoryNames = [

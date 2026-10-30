@@ -8,7 +8,7 @@ let originalWarmupFlag;
 let originalSetTimeout;
 let scheduler;
 const timers = [];
-const schedulerKey = Symbol.for("liliiachaika.image-warmup-scheduler");
+const schedulerKey = Symbol.for("@nimitzua/emdash-images.image-warmup-scheduler");
 
 test.before(async () => {
 	originalNodeEnv = process.env.NODE_ENV;

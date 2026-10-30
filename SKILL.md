@@ -6,7 +6,7 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
 1. **Install a tag.** Use the tag selected by the site. Check that the site uses EmDash 1.3, Astro 7, and Node 26 or later. The package needs its `astro`, `emdash`, and `sharp` peer dependencies; `pg` is installed as a package dependency.
 
-2. **Keep site options in one module.** Create or update `src/lib/image-options.mjs`. Set `deniedStorageKeyPrefixes` to storage-key prefixes (for example, `private-cases/`) and `deniedPagePathPrefixes` to private page paths (for example, `/private`). They are separate settings. The package defaults both lists to empty.
+2. **Keep site options in one module.** Create or update `src/lib/image-options.mjs` with a default-exported options object. Set `deniedStorageKeyPrefixes` to storage-key prefixes (for example, `restricted/`) and `deniedPagePathPrefixes` to private page paths (for example, `/private`). They are separate settings. The package defaults both lists to empty. Import the same module as a default in `astro.config.mjs` and pass its path to CLI commands with `--config`.
 
 3. **Register both package entry points in `astro.config.mjs`.** Set `image.service` to `imageService(imageOptions)`. Add `emdashImages({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` to EmDash's `plugins` list, passing both lists from `imageOptions`. The native plugin has the `content:read` capability and one hook, `content:afterPublish`; it schedules warm-up after publication. Do not add admin settings for these options.
 
@@ -18,19 +18,19 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
    `withImageGuard` wraps the site's private-access handler. Pass its storage-key list and set `onDeniedStorageKey` to the site's private 404 response. Point EmDash's `middleware.outer` at that composed module. The package does not install the guard automatically.
 
-5. **Pass the same lists to scheduled warm-up.** Manual publish and media-replacement call sites should call `scheduleImageWarmup({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` using values from `imageOptions`. The deploy warm-up entry point should pass those lists to `warmPublicSite()` too.
+5. **Pass the same lists to scheduled warm-up.** Manual publish and media-replacement call sites should call `scheduleImageWarmup({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` using values from `imageOptions`. Any code that manually starts a warm-up should pass those lists to `warmPublicSite()` too.
 
-6. **Make the package available in the runtime image.** For this repository's workspace `file:` dependency, copying only `node_modules` leaves a dangling link; copy `packages/emdash-images/package.json`, `LICENSE`, and `src/` into the runtime image. With a git-tag install, make sure the npm-installed package contents are present in the runtime `node_modules` tree.
+6. **Make the package available in the runtime image.** Ensure the installed package is present in the runtime image's `node_modules` tree. Set `IMAGE_CACHE_DIR` in the runtime environment to the image cache directory.
 
-7. **Backfill, then warm twice.** Run the site's backfill in dry-run mode, review it, then add `--write` to fill missing media metadata. Run the site's warm-up command twice. The first run may generate variants; the second should report `Generated: 0` and no failures. See the README for the command names used by this repository.
+7. **Backfill, then warm twice.** Run `npx emdash-images backfill --config ./src/lib/image-options.mjs` in dry-run mode and review it, then add `--write` to fill missing media metadata. The site must be running, and the `warm` command's environment or `--env-file` must carry the same valid `PORT` or `SITE_PORT` the site listens on; otherwise pass `--origin`. Run `npx emdash-images warm --config ./src/lib/image-options.mjs` twice. The first run may generate variants; the second should report `Generated: 0` and no failures.
 
-8. **Review cache cleanup before deleting.** Run the cleanup entry point without `--delete`, inspect its report, then rerun with `--delete` when the candidates are expected. Encoder changes create a new cache namespace.
+8. **Review cache cleanup before deleting.** Run `npx emdash-images cleanup --config ./src/lib/image-options.mjs`, inspect its dry-run report, then rerun with `--delete` when the candidates are expected. Encoder changes create a new cache namespace.
 
 ## Common mistakes
 
 - **Reading the cache path at build time.** The running service resolves `IMAGE_CACHE_DIR` first, then `cacheDirectory` in Astro's service config, then `.dev/image-cache`. Set the environment value in the runtime environment; the build does not capture it.
-- **Omitting the runtime package files.** A copied `node_modules` tree does not include the target of this workspace link. Copy the package manifest, license, and source tree; for a git-tag install, copy the installed `node_modules` contents.
-- **Passing a route instead of a private-key prefix.** `deniedStorageKeyPrefixes` takes storage keys such as `private-cases/`, without the media URL prefix. Use `deniedPagePathPrefixes` for a page route such as `/private`.
+- **Omitting the runtime package.** Ensure the installed package is present in the runtime `node_modules` tree.
+- **Passing a route instead of a private-key prefix.** `deniedStorageKeyPrefixes` takes storage keys such as `restricted/`, without the media URL prefix. Use `deniedPagePathPrefixes` for a page route such as `/private`.
 
 ## Package behavior to preserve
 

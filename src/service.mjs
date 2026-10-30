@@ -23,9 +23,9 @@ const imageRequestParameters = new Set(["href", "w", "f", "fit", "v"]);
 const imageVersionPattern = /^[0-9a-f]{16}$/;
 const defaultCacheDirectory = ".dev/image-cache";
 const mediaIdPattern = /^[A-Za-z0-9_-]+$/;
-const imageEncodeLimiterKey = Symbol.for("liliiachaika.image-encode-limiter");
+const imageEncodeLimiterKey = Symbol.for("@nimitzua/emdash-images.image-encode-limiter");
 const imageEncodeLimiters = globalThis[imageEncodeLimiterKey] ??= new Map();
-const imageCacheContextKey = Symbol.for("liliiachaika.image-cache-context");
+const imageCacheContextKey = Symbol.for("@nimitzua/emdash-images.image-cache-context");
 const imageCacheContext = globalThis[imageCacheContextKey] ??= new AsyncLocalStorage();
 
 function serviceConfig(imageConfig) {

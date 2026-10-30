@@ -56,6 +56,23 @@ test("package source stays within its boundary and declared dependencies", async
 	assert.deepEqual(violations, [], violations.join("\n"));
 });
 
+test("package source contains no site names", async () => {
+	const sourceFiles = await collectFiles(sourceRoot);
+	const siteNames = [/liliiachaika/i, /facadesystems/i, /scripts\/deploy/i];
+	const violations = [];
+
+	for (const filePath of sourceFiles) {
+		const source = await readFile(filePath, "utf8");
+		const relativeFile = path.relative(packageRoot, filePath);
+		for (const siteName of siteNames) {
+			const match = source.match(siteName);
+			if (match) violations.push(`${relativeFile}: names a site (${match[0]})`);
+		}
+	}
+
+	assert.deepEqual(violations, [], violations.join("\n"));
+});
+
 async function collectFiles(directory) {
 	const files = [];
 	for (const entry of await readdir(directory, { withFileTypes: true })) {

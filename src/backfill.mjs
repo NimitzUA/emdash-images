@@ -3,7 +3,7 @@ import path from "node:path";
 import { Pool } from "pg";
 import { computeContentHash } from "emdash";
 
-const usage = "Usage: node scripts/deploy/backfill-media-hashes.mjs [--write]";
+const usage = "Usage: emdash-images backfill [--write]";
 const metadataFields = ["width", "height", "blurhash", "dominant_color"];
 const backfillFields = ["content_hash", ...metadataFields];
 const emptyFieldPredicates = {
