@@ -139,4 +139,45 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `c27eae6` (`--no-ff` of `task/003-versioning-and-releases` onto `8a53dc1`). Task
+  commits: T1 `8c83393` (review 1 PASS), T2 `29cd1a0` (review 1 PASS). No FIX rounds. Gates:
+  `GATES OK`; `node scripts/release.mjs verify` in the worktree printed `RELEASE OK 0.1.0`;
+  `npm pack --dry-run` listed 26 files: `CHANGELOG.md`, `LICENSE`, `README.md`, `SKILL.md`,
+  `package.json` and `src/**` only. Lockfile unchanged, so no install; after merge `VERIFY OK`.
+  `version` stays `0.1.0`; nothing tagged, pushed or published.
+- **Decisions:**
+  - T2: after the executor's commit failed on 1Password (see Surprises), the user confirmed
+    signing; a fresh commit-only executor committed the five staged files unchanged.
+  - Executors asked no questions.
+- **Surprises:**
+  - T2's executor could not sign its commit: two attempts printed
+    `error: 1Password: failed to fill whole buffer`, while `sign-probe.sh` printed `SIGN OK` at the
+    start of the run and again right after the failure. This is the second run in a row (plan 002,
+    T1) where a Codex terminal's signing failed while the probe from the architect's terminal
+    passed; the commit-only executor signed without trouble once the user was watching.
+  - The reviewer role cannot run `npm pack --dry-run` (npm cache `EPERM` under `~/.npm/_cacache`),
+    so T2's Acceptance item 4 was NOT RUN in review; the architect ran it at the plan gates with
+    `--cache` pointing into the worktree.
+- **Deviations:**
+  - T2 was committed by a second, commit-only executor (spec `T2.commit.spec.md`) instead of the
+    executor that wrote it; the content is the first executor's, unchanged.
+  - `docs/RELEASING.md`'s failure path adds `git reset --hard HEAD^` to the plan's "delete the
+    local tag, fix, start again": `prepare` refuses a version equal to the current one, so the
+    release commit has to go too. The reviewer accepted it as needed.
+  - No amendments.
+- **Follow-ups:**
+  - `test/release.test.mjs:84`: the `0.2.0-rc.1` case asserts only a rejection, not the `X.Y.Z`
+    message; a loosened format check would still pass because `BigInt("0-rc")` throws later.
+  - No test for numeric ordering across digit counts (`0.9.0` to `0.10.0`); the implementation
+    compares each part with `BigInt` (`scripts/release.mjs:89-97`) and is correct.
+  - `scripts/release.mjs:45`: the descriptor regex stops at the first `}`; a nested object type
+    above `version` in `EmdashImagesDescriptor` would make the version read as missing (fails
+    loudly). `scripts/release.mjs` is 227 lines against the ~150 estimate (defensive parsing).
+  - `node scripts/release.mjs` with no arguments prints usage and exits 2.
+  - `CHANGELOG.md` lists the package-named `globalThis` keys and usage strings under `### Added`;
+    Keep a Changelog would file a rename under `### Changed`. Worth moving before 0.2.0 is cut.
+  - The owner's next step: cut 0.2.0 by following `docs/RELEASING.md` (npm scope, login and
+    two-factor first).
+  - Tooling: Codex-terminal signing through 1Password failed in two consecutive runs; the reviewer
+    role cannot run `npm pack` (npm cache) or port-binding tests (plan 002).
+- **Proposed rules:** None: the run had no FIX findings.

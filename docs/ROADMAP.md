@@ -15,9 +15,9 @@ adopts the package on its own side.
 1. **`Picture` component.** A package `Picture` component on `pictureSources`, designed from the
    package's own API. Open question: ADR-0002 keeps markup out of the package, so this item
    needs the owner's decision (and a new ADR if it stays).
-2. **Versioning and releases (next: plan 003).** Decided in ADR-0003 (2026-10-31): npm registry
-   plus signed git tags, SemVer with the 0.x rule, hand-written `CHANGELOG.md`, the owner
-   releases by hand with a prepare/verify script. Next release 0.2.0.
+2. **Release 0.2.0.** The owner's step: follow `docs/RELEASING.md` (npm scope, login, two-factor,
+   then prepare, commit, tag, publish, push). Before it, consider moving the `globalThis`-keys
+   entry in `CHANGELOG.md` from `### Added` to `### Changed` (plan 003's Outcome).
 3. **CI.** Add CI for this repository.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
@@ -43,3 +43,8 @@ adopts the package on its own side.
    (`IMAGE_CACHE_DIR` from the process environment or `--env-file`, then config
    `cacheDirectory`) against the current directory; `UPLOADS_DIR` follows the current directory;
    `--public-origin` requires `--origin`, and both must be absolute http(s) URLs.
+2. **Versioning and releases — plan 003** (merge `c27eae6`). ADR-0003 in place:
+   `scripts/release.mjs` (`prepare X.Y.Z`, `verify`) keeps the five version locations in step and
+   dates `CHANGELOG.md`; `package.json` is npm-ready (`publishConfig.access` public,
+   `prepublishOnly` runs tests and verify, `CHANGELOG.md` in `files`); README and SKILL install
+   from npm; `docs/RELEASING.md` holds the owner's procedure. Still at 0.1.0, nothing published.
