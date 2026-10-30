@@ -159,4 +159,44 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `a14e3ca` (`--no-ff` of `task/001-self-contained-package` onto `b771f2f`). Task
+  commits: T1 `45809ff` (review 1 PASS), T2 `c47f763` (review 1 PASS), T3 `6b6e16e` (review 1
+  FIX with one `[docs]` finding; fix round 1 amended `e3629d4`, accepted on the architect's
+  reading after `docs-only.sh` printed `DOCS ONLY`). Gates: `GATES OK`; `node src/bin.mjs --help`
+  exit 0; `git grep -i -E "liliiachaika|facadesystems|scripts/deploy" -- src README.md SKILL.md`
+  empty; after merge `INSTALL OK` (lockfile changed) and `VERIFY OK`.
+- **Decisions:**
+  - T2 asked whether to edit `README.md`, `SKILL.md`, `src/maintenance.d.mts` and
+    `src/warmup.d.mts`, named under its Docs field. Answer: no, stay in Ownership. A task's Docs
+    field lists documents to read for context, not files to edit; T3 owned README and SKILL, and
+    T2's Constraints forbade changing the wrapped functions.
+  - T3 was told to document `warm`'s cache-directory fallback as the code does it (see
+    Surprises), with no code change in this plan.
+- **Surprises:**
+  - `warmPublicSite` defaults `cacheDirectory` from `process.env.IMAGE_CACHE_DIR`
+    (`src/warmup.mjs:360`), so an `IMAGE_CACHE_DIR` given only in `--env-file` does not reach
+    `warm`, while it does reach `cleanup` (which reads the merged `env`). The plan's T3 phrase
+    "warm falls back to it" holds only for the process environment; README says so.
+  - `warm` prefers the config's `cacheDirectory` over `IMAGE_CACHE_DIR`, while the image service
+    prefers `IMAGE_CACHE_DIR` (`src/service.mjs:119`); with both set they use different
+    directories.
+  - Orca: `worker-release` returned `retained` / `user_takeover` / `processAction: none` for the
+    T1 and T3 executors (T2 and the T3 fix released normally with `closed_agent_terminal`); the
+    idle terminals were closed by hand. The T2 executor sent its one question twice, 16 s apart.
+- **Deviations:** None. Every task ran as written; no amendments.
+- **Follow-ups:**
+  - Make `warm` take `IMAGE_CACHE_DIR` from the merged `env` (CLI passes `cacheDirectory`, or
+    `warmPublicSite` takes an `env`), and align `warm` and the service on which of config
+    `cacheDirectory` and `IMAGE_CACHE_DIR` wins.
+  - `--public-origin` without `--origin` is accepted and silently ignored
+    (`src/cli.mjs:149-155`); reject it or document it.
+  - `warm --origin not-a-url` exits 1 with a bare `Invalid URL`; name the option in the message.
+  - `test/cli.test.mjs:136-144` (`--origin` only) asserts inside the stub and does not check that
+    the stub was called.
+  - The CLI forwards a whitespace-only `cacheDirectory`, which `resolveImageOptions` ignores.
+  - `UPLOADS_DIR` resolves against `process.cwd()`, not `runCli`'s `cwd` option
+    (`src/backfill.mjs:198`); harmless for the binary, visible to programmatic callers.
+  - The renamed `Symbol.for` keys mean an old and a new build in one process no longer share the
+    encode limiter, cache context or scheduler; intended, not public API.
+- **Proposed rules:** None: the run had one FIX finding (`[docs]`, T3), and no finding kind
+  recurred in two reviews.
