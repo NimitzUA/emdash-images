@@ -2,7 +2,7 @@
 
 Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, cache warm-up, and media backfill and cleanup helpers.
 
-The package does not provide an Astro `<Picture>` component or site markup. Each site owns its media queries, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin or implement facadesystems’ custom image route.
+The package does not provide an Astro `<Picture>` component or site markup. Each site owns its media queries, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
 
 ## Supported versions
 
@@ -51,7 +51,7 @@ Keep the options in one site module. Set the denied prefixes to match the site's
 `src/lib/image-options.mjs`:
 
 ```js
-export const imageOptions = {
+export default {
 	deniedStorageKeyPrefixes: ["restricted/"],
 	deniedPagePathPrefixes: ["/members"],
 };
@@ -67,7 +67,7 @@ import { defineConfig } from "astro/config";
 import emdash, { local } from "emdash/astro";
 import { postgres } from "emdash/db";
 import { emdashImages, imageService } from "@nimitzua/emdash-images";
-import { imageOptions } from "./src/lib/image-options.mjs";
+import imageOptions from "./src/lib/image-options.mjs";
 
 export default defineConfig({
 	output: "server",
@@ -95,13 +95,15 @@ export default defineConfig({
 });
 ```
 
+The default-exported options module can also be passed directly to the package CLI with `--config`.
+
 The middleware guard is a wrapper around the site's private-access middleware. The order is site localization, image guard, then private access. `onDeniedStorageKey` must return the site's private 404 response so private image URLs keep the site's private response headers.
 
 `src/lib/outer-middleware.mjs`:
 
 ```js
 import { withImageGuard } from "@nimitzua/emdash-images";
-import { imageOptions } from "./image-options.mjs";
+import imageOptions from "./image-options.mjs";
 import { onRequest as privateAccessOnRequest, privateNotFound } from "./private-access-middleware.mjs";
 
 const imageGuard = withImageGuard(privateAccessOnRequest, {
@@ -127,35 +129,46 @@ This is a native plugin package and runs in the same process as the EmDash site.
 
 Astro's `data-image-component` development marker belongs to the site component. A site `Picture` component that builds `<picture>` by hand must forward `image.layout`, scoped-style attributes, and any other image attributes it uses.
 
-## Backfill, warm-up, and cleanup
+## Command line
 
-The package exports the maintenance functions; the site owns their database, storage, and command wrappers. In a site with the existing wrappers, run these commands from its root:
-
-```sh
-npm run backfill-media-hashes
-npm run backfill-media-hashes -- --write
-npm run warm-cache
-```
-
-The backfill is a dry run unless `--write` is present. Run warm-up again after the first successful run; it should report `Generated: 0` when the variants are already cached.
-
-The current site has no cleanup npm script. Its existing cleanup entry point is:
+The package CLI supports these commands and options:
 
 ```sh
-IMAGE_CACHE_DIR=/path/to/image-cache node --env-file-if-exists=.env scripts/deploy/cleanup-image-cache.mjs
-IMAGE_CACHE_DIR=/path/to/image-cache node --env-file-if-exists=.env scripts/deploy/cleanup-image-cache.mjs --delete
+emdash-images <command> [options]
+
+Commands:
+  backfill [--write]
+  cleanup [--delete]
+  warm [--origin <url>] [--public-origin <url>]
+
+Global options:
+  --config <path>
+  --env-file <path>
+  -h, --help
 ```
 
-Review the dry-run report before adding `--delete`.
+Use `--config` with the same default-exported options module used by `astro.config.mjs`:
+
+```sh
+npx emdash-images backfill --config ./src/lib/image-options.mjs
+npx emdash-images backfill --config ./src/lib/image-options.mjs --write
+npx emdash-images cleanup --config ./src/lib/image-options.mjs
+npx emdash-images cleanup --config ./src/lib/image-options.mjs --delete
+npx emdash-images warm --config ./src/lib/image-options.mjs
+npx emdash-images warm --config ./src/lib/image-options.mjs --origin https://example.com
+```
+
+Backfill and cleanup default to dry runs; `--write` applies backfill metadata and `--delete` removes eligible cache files. Review each dry-run report before applying changes. Run warm-up again after its first successful run; it should report `Generated: 0` when the variants are already cached. Add `--env-file ./.env` to a command to load environment values from a file; existing process environment values take precedence over values in that file.
+
+Backfill and cleanup connect to PostgreSQL using `DATABASE_URL` or `EMDASH_DATABASE_URL`; otherwise they use `PGHOST`, `PGPORT` (default `5432`), `PGDATABASE`, `PGUSER`, and optional `PGPASSWORD`. Maintenance supports PostgreSQL only; backfill reads original media from a local uploads directory only, set with `UPLOADS_DIR` (default `uploads`).
+
+Cleanup requires `IMAGE_CACHE_DIR` to name an existing local cache directory. Warm uses `cacheDirectory` from the config when supplied; otherwise its cache fallback is the process environment's `IMAGE_CACHE_DIR`, then `.dev/image-cache`. An `IMAGE_CACHE_DIR` value found only in `--env-file` does not set warm's cache fallback. Without `--origin`, warm reads a valid `PORT` or `SITE_PORT` for its local request origin and uses `EMDASH_SITE_URL` as the public origin when set (otherwise it uses the local origin); these URL settings can come from `--env-file`. With `--origin`, that URL is the request origin; `--public-origin` can set a different public origin and defaults to `--origin`.
+
+The CLI exits with code `0` on success, `1` on an operational error or warm-up failures, `2` on invalid command-line usage, and `3` when backfill reports failed rows.
 
 ## Docker runtime image
 
-For a workspace `file:` dependency, copying only `node_modules` leaves the package link pointing to files that are absent from the runtime image. Copy the package manifest, license, and source tree as well:
-
-```dockerfile
-COPY packages/emdash-images/package.json packages/emdash-images/LICENSE ./packages/emdash-images/
-COPY packages/emdash-images/src/ ./packages/emdash-images/src/
-```
+The runtime image needs the installed package in its `node_modules` tree. Set `IMAGE_CACHE_DIR` in the runtime environment to the cache directory the image service should use.
 
 ## Package exports
 
