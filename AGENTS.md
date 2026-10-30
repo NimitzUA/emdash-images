@@ -61,8 +61,8 @@ When your prompt starts with an Orca preamble carrying Task and Dispatch ids:
   heredoc or `-F`: they run inside the sandbox). In a FIX round, amend your task's commit. If
   signing fails twice, leave the changes staged, write the report with "commit waits for
   1Password" and finish with `worker_done --outcome failed`. Do not wait for it in `ask` or
-  `ask --resume`: nobody may be there to unlock it (one executor waited 241 minutes that way);
-  the architect gets the commit made once it is unlocked.
+  `ask --resume`: nobody may be there to approve it (one executor waited 241 minutes that way);
+  the architect commits the staged changes from its own terminal.
 - Never start subagents, review agents or other models: the architect runs the review. A skill
   that says to dispatch a reviewer or subagent, or to finish the branch, does not apply to you.
 - Before `worker_done`, check your work as the reviewer will:

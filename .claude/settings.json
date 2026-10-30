@@ -20,7 +20,8 @@
       "allowWrite": [
         "/Users/serhii/Developer/emdash-images/.git",
         "/Users/serhii/Developer/emdash-images/.scratch/runs",
-        "/Users/serhii/Developer/emdash-images/.worktrees"
+        "/Users/serhii/Developer/emdash-images/.worktrees",
+        "/Users/serhii/.npm"
       ]
     }
   },

@@ -72,10 +72,12 @@ knows only the plan, the docs and `status.md`.
    update `status.md`. A report without a result
    line for each Acceptance item goes back to a fresh executor for the missing evidence before
    any review. A `failed` outcome whose report says "commit waits for
-   1Password" left its changes staged in WT: escalate (section 6), and once the user has
-   unlocked it and `./scripts/orca/sign-probe.sh` prints `SIGN OK`, start a fresh executor with a
-   short spec: commit the staged changes with the task's message (amend in a fix round), run
-   nothing else, `worker_done`. The review follows as usual.
+   1Password" left its changes staged in WT. 1Password asks to approve each new executor
+   terminal, so a fresh executor would wait for the user again; your terminal was approved by
+   the start probe. Commit the staged changes yourself: `cd WT` as its own call, then
+   `git commit -m "<the task's message>"` (`git commit --amend -m …` in a fix round) as its own
+   call, check `git status --porcelain` is empty, then `cd REPO`. Note it in `## Deviations`. If
+   your own commit fails to sign too, escalate (section 6). The review follows as usual.
 
 ## 3. Review and fix rounds
 

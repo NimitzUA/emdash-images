@@ -118,5 +118,8 @@
       "label": "Watch: plan",
       "command": "./scripts/orca/orca-watch.sh"
     }
+  ],
+  "sandbox_extra_write": [
+    "/Users/serhii/.npm"
   ]
 }
