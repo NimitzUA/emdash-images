@@ -32,7 +32,8 @@
     ],
     "rules": [
       "The package boundary follows ADR-0002 as summarized in `CONTEXT.md`: site markup, EmDash admin settings, private-access rules and site-specific routes stay in the sites, so a plan that needs one is a question for the user.",
-      "A change to the public API (`exports`, `src/*.d.mts`, options) names its version impact; the release process is still open (`docs/ROADMAP.md`), so a plan never tags or publishes a release."
+      "A change to the public API (`exports`, `src/*.d.mts`, options) names its version impact. Releases follow ADR-0003 and `docs/RELEASING.md`; a plan never tags or publishes a release.",
+      "Once `CHANGELOG.md` exists, a plan that changes behavior or the public API gives one task the item of adding its entry under `## Unreleased` (ADR-0003)."
     ]
   },
   "setup_ready": "node_modules/.bin/astro",
@@ -75,7 +76,8 @@
     "- Private storage-key prefixes never reach public transforms, warm-up, logs or the cache, and cleanup and cache paths never leave the cache directory.",
     "- The public API matches the implementation: `exports`, `src/*.d.mts`, README and `SKILL.md` agree with the code, and every breaking change is named in the plan.",
     "- The dated behavior in `CONTEXT.md` holds unless the plan changes it: a request for an old content hash gets a temporary `302` with `no-store` to the current `hash16`, whose URL gets the immutable cache policy; `encodeLimit` defaults to 2; AVIF encodes with 4:4:4 chroma; `pictureSources()` returns unversioned URLs when the content hash is missing and `undefined` only when the source cannot be transformed.",
-    "- Every behavior change has a `node:test` test, no other test framework is added, and `test/boundary.test.mjs` stays green and is not weakened."
+    "- Every behavior change has a `node:test` test, no other test framework is added, and `test/boundary.test.mjs` stays green and is not weakened.",
+    "- Once `CHANGELOG.md` exists, a task that changes behavior or the public API adds its entry under `## Unreleased` (ADR-0003); a task whose plan names no such item adds none."
   ],
   "reviewer_never": [
     "Never run `npm ci` or `npm install` (Orca setup installs dependencies)."

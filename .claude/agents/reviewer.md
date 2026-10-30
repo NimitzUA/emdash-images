@@ -32,6 +32,7 @@ Check:
 - The public API matches the implementation: `exports`, `src/*.d.mts`, README and `SKILL.md` agree with the code, and every breaking change is named in the plan.
 - The dated behavior in `CONTEXT.md` holds unless the plan changes it: a request for an old content hash gets a temporary `302` with `no-store` to the current `hash16`, whose URL gets the immutable cache policy; `encodeLimit` defaults to 2; AVIF encodes with 4:4:4 chroma; `pictureSources()` returns unversioned URLs when the content hash is missing and `undefined` only when the source cannot be transformed.
 - Every behavior change has a `node:test` test, no other test framework is added, and `test/boundary.test.mjs` stays green and is not weakened.
+- Once `CHANGELOG.md` exists, a task that changes behavior or the public API adds its entry under `## Unreleased` (ADR-0003); a task whose plan names no such item adds none.
 - No secrets, `.env` values or personal data in code, tests, reports or the commit.
 - Rerun the task's gates yourself (`./scripts/orca/check.sh` runs test).
 - Flag every change to files that run outside the sandbox or set permissions, unless the task
