@@ -442,7 +442,7 @@ export async function warmPublicSite(requestOrigin, publicOrigin, options = {}) 
 }
 
 const DEFAULT_DEBOUNCE_MS = 5_000;
-const schedulerKey = Symbol.for("liliiachaika.image-warmup-scheduler");
+const schedulerKey = Symbol.for("@nimitzua/emdash-images.image-warmup-scheduler");
 
 export function isImageWarmupEnabled(env = process.env) {
 	return env.NODE_ENV === "production" || env.IMAGE_WARMUP_ON_PUBLISH === "1";
