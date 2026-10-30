@@ -14,15 +14,17 @@ The package does not provide an Astro `<Picture>` component or site markup. Each
 
 The package is MIT licensed. The source repository is [nimitzua/emdash-images](https://git.srv1.parshyn.dev/nimitzua/emdash-images).
 
-## Install from a git tag
+## Install
 
-Choose a release tag and install it in the EmDash site:
+Install the package from npm:
 
 ```sh
-npm install git+https://git.srv1.parshyn.dev/nimitzua/emdash-images.git#v0.1.0
+npm install @nimitzua/emdash-images
 ```
 
 Installing the dependency does not activate the native plugin. Register its descriptor in `astro.config.mjs` and deploy the site.
+
+Before 1.0.0, features and breaking changes increment the minor version and fixes increment the patch version; see the [changelog](./CHANGELOG.md).
 
 ## Options
 

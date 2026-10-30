@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 let api;
 let pluginModule;
 let originalNodeEnv;
@@ -42,7 +44,7 @@ test("native descriptor carries serializable package options", () => {
 	const descriptor = api.emdashImages(options);
 	assert.deepEqual(descriptor, {
 		id: "emdash-images",
-		version: "0.1.0",
+		version: packageJson.version,
 		format: "native",
 		entrypoint: "@nimitzua/emdash-images/plugin",
 		capabilities: ["content:read"],
