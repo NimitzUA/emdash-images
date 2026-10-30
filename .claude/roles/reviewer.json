@@ -1,0 +1,65 @@
+{
+  "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "0"
+  },
+  "autoMemoryEnabled": false,
+  "enabledPlugins": {},
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/orca/plain-commands.py\" --role=reviewer"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/orca/reviewer-write-guard.py\""
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/orca/orca_events.py\" --role=reviewer"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(orca orchestration send *)",
+      "Bash(orca orchestration ask *)",
+      "Bash(orca orchestration check*)"
+    ],
+    "deny": [
+      "Bash(orca worktree *)",
+      "Bash(orca terminal *)",
+      "Bash(orca keypress*)",
+      "Bash(git commit*)",
+      "Bash(git add*)",
+      "Bash(git merge*)",
+      "Bash(./scripts/orca/plan-gates.sh*)",
+      "Bash(./scripts/orca/verify-main.sh*)",
+      "Bash(./scripts/orca/remove-worktree.sh*)",
+      "Bash(./scripts/orca/install-main.sh*)",
+      "Bash(./scripts/orca/sign-probe.sh*)",
+      "Bash(./scripts/orca/wait.sh*)",
+      "Bash(./scripts/orca/review.sh*)",
+      "Bash(npm ci*)",
+      "Bash(npm install*)",
+      "Bash(npm * ci*)",
+      "Bash(npm * install*)"
+    ]
+  }
+}

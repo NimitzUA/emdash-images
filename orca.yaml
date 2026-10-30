@@ -1,0 +1,10 @@
+# Orca repo configuration, read when a worktree of this repository is created.
+# Quick commands live in Orca's settings, not here; see docs/ORCA.md.
+
+scripts:
+  # Runs in every new worktree before the agent starts: the versioned git hooks
+  # (.githooks/commit-msg), then the dependencies the checks need.
+  setup: git config core.hooksPath .githooks && npm_config_cache="$PWD/.npm-cache" npm ci
+
+# The agent starts only after setup finishes, never against half-installed dependencies.
+setupAgentStartupPolicy: wait-for-setup

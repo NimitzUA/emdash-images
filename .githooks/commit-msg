@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Checks the commit message. Enabled by `git config core.hooksPath .githooks`
+# (orca.yaml does it). See docs/GIT.md.
+#   - subject: not empty, at most 72 characters
+#   - a blank line between subject and body
+#   - no AI authorship: Co-authored-by trailers, "Generated with/by", robot emoji,
+#     noreply addresses of AI vendors. Commits are authored by the user only.
+set -euo pipefail
+
+file="$1"
+msg=$(grep -v '^#' "$file" || true)
+subject=$(printf '%s\n' "$msg" | sed -n '1p')
+second=$(printf '%s\n' "$msg" | sed -n '2p')
+
+fail() { echo "commit-msg: $1" >&2; exit 1; }
+
+[ -n "$subject" ] || fail "empty subject"
+[ "${#subject}" -le 72 ] || fail "subject is ${#subject} characters, the limit is 72"
+[ -z "$second" ] || fail "put a blank line between the subject and the body"
+
+if printf '%s\n' "$msg" | grep -Eiq '^(co-authored-by|assisted-by):|generated (with|by)|🤖|noreply@(anthropic|openai)\.com'; then
+  fail "no AI authorship in commit messages (Co-authored-by, Generated with/by, noreply@anthropic.com). The author is the user."
+fi

@@ -1,0 +1,49 @@
+# Project Codex settings, applied when this path is trusted in ~/.codex/config.toml.
+# Executors run unattended from Orca: they never wait for approval. Anything outside the sandbox
+# and the rules in rules/*.rules fails, and the executor asks the architect through Orca.
+# Drafted by orca-setup's init.py from references/codex-config.md; this file is the project's.
+
+model = "gpt-6-luna"
+model_reasoning_effort = "max"
+plan_mode_reasoning_effort = "max"
+approval_policy = "never"
+check_for_update_on_startup = false
+default_permissions = "emdashimages"
+
+[shell_environment_policy]
+set = { HOME = "/Users/serhii" }
+
+[permissions.emdashimages]
+description = "@nimitzua/emdash-images development: worktree, repository .git (not hooks or config), shared run files."
+extends = ":workspace"
+
+[permissions.emdashimages.workspace_roots]
+"/Users/serhii/.npm" = true
+"/Users/serhii/Developer/emdash-images/.scratch/runs" = true
+"/Users/serhii/Developer/emdash-images/.worktrees" = true
+
+[permissions.emdashimages.filesystem.":workspace_roots"]
+"." = "write"
+# Secret files: readable for tests, written only by the project's scripts.
+".env" = "read"
+".env.local" = "read"
+
+[permissions.emdashimages.filesystem."/Users/serhii/Developer/emdash-images/.git"]
+"." = "write"
+# Read access keeps git config queries working; these narrower rules block writes.
+"hooks" = "read"
+"config" = "read"
+
+[permissions.emdashimages.network]
+# Package installs, docs MCP servers and the Orca CLI (its Unix socket) need it.
+enabled = true
+
+[permissions.emdashimages.network.unix_sockets]
+"/Users/serhii/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" = "allow"
+
+# Plugins executors never use only add context; they stay on globally.
+[plugins."documents@openai-primary-runtime"]
+enabled = false
+
+[plugins."computer-use@openai-bundled"]
+enabled = false

@@ -1,0 +1,83 @@
+{
+  "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "0"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/orca/plain-commands.py\" --role=architect-run"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/orca/orca_events.py\" --role=architect-run"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(orca orchestration *)",
+      "Bash(orca terminal *)",
+      "Bash(orca worktree *)"
+    ],
+    "ask": [
+      "Bash(npm ci*)",
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npm uninstall*)",
+      "Bash(npm update*)",
+      "Bash(npm exec*)",
+      "Bash(npm publish*)",
+      "Bash(npx *)",
+      "Bash(docker compose exec*)",
+      "Bash(docker compose run*)",
+      "Bash(docker build*)",
+      "Bash(curl *-X *)",
+      "Bash(curl *--request*)",
+      "Bash(curl *-d *)",
+      "Bash(curl *--data*)",
+      "Bash(curl *-F *)",
+      "Bash(curl *--form*)",
+      "Bash(curl *-T *)",
+      "Bash(curl *--upload-file*)"
+    ],
+    "deny": [
+      "Edit(**/src/**)",
+      "Edit(**/tests/**)",
+      "Edit(**/scripts/**)",
+      "Edit(**/seed/**)",
+      "Edit(**/plugins/**)",
+      "Edit(**/packages/**)",
+      "Edit(**/deploy/**)",
+      "Edit(**/public/**)",
+      "Edit(**/.forgejo/**)",
+      "Edit(**/.github/**)",
+      "Edit(**/package.json)",
+      "Edit(**/package-lock.json)",
+      "Edit(**/*.config.*)",
+      "Edit(**/tsconfig.json)",
+      "Edit(**/Dockerfile)",
+      "Edit(**/docker-compose.yml)",
+      "Edit(**/compose*.yaml)",
+      "Edit(**/.claude/**)",
+      "Edit(**/.codex/**)",
+      "Edit(**/.mcp.json)",
+      "Edit(**/.orca-setup.json)",
+      "Edit(**/.orca-setup.lock.json)",
+      "Edit(docs/adr/**)",
+      "Edit(docs/proposals/**)",
+      "Edit(docs/templates/**)"
+    ]
+  }
+}

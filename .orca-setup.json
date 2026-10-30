@@ -1,0 +1,120 @@
+{
+  "workflow": "architect",
+  "project": {
+    "name": "@nimitzua/emdash-images",
+    "summary": "A public MIT npm package with the reusable server-side image pipeline for EmDash sites: the Astro image service, the `/_image` guard, `pictureSources`, warm-up, backfill, cleanup and a native EmDash plugin. ADR-0002, summarized in `CONTEXT.md`, sets its boundary."
+  },
+  "language": {
+    "user": "Ukrainian"
+  },
+  "repo_root": "/Users/serhii/Developer/emdash-images",
+  "main_branch": "main",
+  "runs_dir": "/Users/serhii/Developer/emdash-images/.scratch/runs",
+  "worktrees_dir": ".worktrees",
+  "has_remote": true,
+  "signing": "1Password",
+  "docs": {
+    "orca": "docs/ORCA.md",
+    "plans": "docs/plans",
+    "adr": "docs/adr",
+    "roadmap": "docs/ROADMAP.md",
+    "templates": "docs/templates",
+    "git": "docs/GIT.md"
+  },
+  "planning": {
+    "reads": [
+      "AGENTS.md",
+      "docs/ORCA.md",
+      "CONTEXT.md",
+      "docs/ROADMAP.md",
+      "README.md",
+      "SKILL.md"
+    ],
+    "rules": [
+      "The package boundary follows ADR-0002 as summarized in `CONTEXT.md`: site markup, EmDash admin settings, private-access rules and site-specific routes stay in the sites, so a plan that needs one is a question for the user.",
+      "A change to the public API (`exports`, `src/*.d.mts`, options) names its version impact; the release process is still open (`docs/ROADMAP.md`), so a plan never tags or publishes a release."
+    ]
+  },
+  "setup_ready": "node_modules/.bin/astro",
+  "excluded_commands": [
+    "orca",
+    "git commit",
+    "git merge"
+  ],
+  "checks": {
+    "task": [
+      {
+        "name": "test",
+        "cmd": "npm test"
+      }
+    ],
+    "verify": [
+      {
+        "name": "test",
+        "cmd": "npm test"
+      }
+    ],
+    "install": "npm_config_cache=\"$PWD/.npm-cache\" npm ci",
+    "lockfile": "package-lock.json"
+  },
+  "plan_gates": [
+    "install",
+    "test"
+  ],
+  "protected_paths": [
+    ".githooks/",
+    ".claude/",
+    ".codex/",
+    ".mcp.json",
+    "orca.yaml",
+    "LICENSE",
+    "the `version`, `exports`, `peerDependencies` and `scripts` fields of `package.json`"
+  ],
+  "review_rules": [
+    "- The ADR-0002 boundary holds: no site markup, private-access rules, site paths or the facadesystems custom image route; options stay in code and the EmDash admin gets no image-pipeline settings.",
+    "- Private storage-key prefixes never reach public transforms, warm-up, logs or the cache, and cleanup and cache paths never leave the cache directory.",
+    "- The public API matches the implementation: `exports`, `src/*.d.mts`, README and `SKILL.md` agree with the code, and every breaking change is named in the plan.",
+    "- The dated behavior in `CONTEXT.md` holds unless the plan changes it: a request for an old content hash gets a temporary `302` with `no-store` to the current `hash16`, whose URL gets the immutable cache policy; `encodeLimit` defaults to 2; AVIF encodes with 4:4:4 chroma; `pictureSources()` returns unversioned URLs when the content hash is missing and `undefined` only when the source cannot be transformed.",
+    "- Every behavior change has a `node:test` test, no other test framework is added, and `test/boundary.test.mjs` stays green and is not weakened."
+  ],
+  "reviewer_never": [
+    "Never run `npm ci` or `npm install` (Orca setup installs dependencies)."
+  ],
+  "reviewer_never_short": [
+    "no `npm ci`",
+    "no `npm install`"
+  ],
+  "docs_sources": "the `emdash-docs`, `astro-docs` or `context7` MCP servers",
+  "mcp_enabled": [
+    "emdash-docs",
+    "astro-docs"
+  ],
+  "mcp_allow": [
+    "context7",
+    "emdash-docs",
+    "astro-docs"
+  ],
+  "settings_deny": [
+    "git push*",
+    "git tag *"
+  ],
+  "codex_forbid": [
+    {
+      "pattern": [
+        "git",
+        "tag"
+      ],
+      "why": "Release tags are the user's; the release process is not decided yet."
+    }
+  ],
+  "quick_commands": [
+    {
+      "label": "Check: test",
+      "command": "npm test"
+    },
+    {
+      "label": "Watch: plan",
+      "command": "./scripts/orca/orca-watch.sh"
+    }
+  ]
+}

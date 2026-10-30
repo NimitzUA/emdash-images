@@ -1,0 +1,44 @@
+{
+  "excluded": [
+    [
+      "orca"
+    ],
+    [
+      "git",
+      "commit"
+    ],
+    [
+      "git",
+      "merge"
+    ],
+    [
+      "./scripts/orca/check.sh"
+    ],
+    [
+      "./scripts/orca/plan-gates.sh"
+    ],
+    [
+      "./scripts/orca/verify-main.sh"
+    ],
+    [
+      "./scripts/orca/orca-watch.sh"
+    ],
+    [
+      "./scripts/orca/install-main.sh"
+    ],
+    [
+      "./scripts/orca/remove-worktree.sh"
+    ],
+    [
+      "./scripts/orca/wait.sh"
+    ],
+    [
+      "./scripts/orca/review.sh"
+    ],
+    [
+      "./scripts/orca/sign-probe.sh"
+    ]
+  ],
+  "refuse_in_place_edits": true,
+  "runs_dir": "/Users/serhii/Developer/emdash-images/.scratch/runs"
+}
