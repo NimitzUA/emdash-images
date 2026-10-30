@@ -296,9 +296,7 @@ async function collectSitemapPages(requestOrigin, publicOrigin, failures, option
 
 	if (sitemapQueue.length > 0) failures.push(`sitemap discovery stopped after ${MAX_SITEMAPS} sitemap files`);
 	pageLocations.add("/");
-	pageLocations.add("/uk/");
-	pageLocations.add(`/__cache-warm-404-en-${randomUUID()}`);
-	pageLocations.add(`/uk/__cache-warm-404-uk-${randomUUID()}`);
+	pageLocations.add(`/__cache-warm-404-${randomUUID()}`);
 
 	return { pageLocations: [...pageLocations], sitemaps };
 }
@@ -367,7 +365,7 @@ export async function warmPublicSite(requestOrigin, publicOrigin, options = {}) 
 	const failures = [];
 	const discovery = await collectSitemapPages(requestOrigin, publicOrigin, failures, deniedPaths);
 	const pageResults = await mapWithConcurrency(discovery.pageLocations, PAGE_CONCURRENCY, async (location) => {
-		const expected404 = location.startsWith("/__cache-warm-404-") || location.startsWith("/uk/__cache-warm-404-");
+		const expected404 = location.startsWith("/__cache-warm-404-");
 		try {
 			const response = await fetchSite(location, requestOrigin, publicOrigin, deniedPaths);
 			const html = await response.text();
