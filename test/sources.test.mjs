@@ -141,6 +141,19 @@ test("pictureSources uses widths from imageConfig when options do not provide th
 	assert.deepEqual(result?.widths, [640, 1200]);
 });
 
+test("pictureSources uses smallWidths from imageConfig when options do not provide them", async () => {
+	const { getImage } = createImageApi();
+	const result = await pictureSources(
+		{ src, width: 1600, height: 1000, srcsetWidths: [400], origin },
+		{
+			getImage,
+			imageConfig: { service: { config: { publicWidths: [640, 1200], smallWidths: [400] } } },
+		},
+	);
+
+	assert.deepEqual(result?.widths, [400, 640, 1200]);
+});
+
 test("pictureSources lets explicit publicWidths override imageConfig", async () => {
 	const { getImage } = createImageApi();
 	const result = await pictureSources(
