@@ -33,8 +33,8 @@ function createImageApi({ unchanged = false, sizes = "100vw" } = {}) {
 			loading: rest.loading ?? "lazy",
 			decoding: rest.decoding ?? "async",
 		};
-		if (!Object.hasOwn(rest, "sizes") && options.layout && options.layout !== "none") {
-			attributes.sizes = sizes;
+		if (options.layout && options.layout !== "none") {
+			attributes.sizes ||= sizes;
 		}
 		if (options.layout && options.layout !== "none") {
 			attributes["data-astro-image"] = options.layout;
@@ -91,6 +91,12 @@ test("the src prop replaces the primary media URL", async () => {
 	assert.equal(calls[0].src, "https://cdn.example.test/override.jpg");
 });
 
+test("an empty src prop falls back to the primary media URL", async () => {
+	const { calls } = await render({ src: "" });
+	assert.ok(calls.length > 0);
+	assert.ok(calls.every((call) => call.src === "https://site.example.test/media/primary.jpg"));
+});
+
 test("relative URLs are absolute for pictureSources and stay relative in the fallback", async () => {
 	const optimized = await render({ image: { ...image, src: "images/relative.jpg" } });
 	assert.equal(optimized.calls[0].src, "https://site.example.test/blog/post/images/relative.jpg");
@@ -138,6 +144,33 @@ test("imageConfig supplies layout, fit, and position defaults", async () => {
 	assert.equal(transform.layout, "constrained");
 	assert.equal(transform.fit, "contain");
 	assert.equal(transform.position, "20% 30%");
+});
+
+test("constrained layout defaults format calls to cover and center", async () => {
+	const { calls } = await render({ layout: "constrained" });
+	const formatCalls = calls.filter((call) => call.widths);
+	assert.ok(formatCalls.length > 0);
+	assert.ok(formatCalls.every((call) => call.fit === "cover"));
+	assert.ok(formatCalls.every((call) => call.position === "center"));
+});
+
+test("constrained layout defaults sizes on the img and both sources", async () => {
+	const { result } = await render({ layout: "constrained" });
+	const { img, sources } = result.variants[0];
+	assert.equal(img.sizes, "100vw");
+	assert.deepEqual(sources.map((source) => source.sizes), ["100vw", "100vw"]);
+});
+
+test("layout none ignores imageConfig fit and position defaults", async () => {
+	const { calls } = await render(
+		{ layout: "none" },
+		{},
+		{ imageConfig: { objectFit: "contain", objectPosition: "top" } },
+	);
+	const formatCalls = calls.filter((call) => call.widths);
+	assert.ok(formatCalls.length > 0);
+	assert.ok(formatCalls.every((call) => call.fit === "cover"));
+	assert.ok(formatCalls.every((call) => call.position === undefined));
 });
 
 test("component-only props do not reach getImage as transform attributes", async () => {

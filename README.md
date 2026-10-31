@@ -154,9 +154,9 @@ import Picture from "@nimitzua/emdash-images/Picture.astro";
 | `contentHash` | The primary media row's `content_hash`, used to version generated URLs. |
 | `darkContentHash` | The dark variant's `content_hash`, used to version its generated URLs. |
 | `srcsetWidths` | Additional responsive width candidates, subject to the configured public and small widths. |
-| `layout` | `"none"`, `"constrained"`, `"fixed"`, or `"fullWidth"`; defaults to Astro's `image.layout`. |
-| `fit` | Image transform fit override. |
-| `position` | Image transform position override. |
+| `layout` | `"none"`, `"constrained"`, `"fixed"`, or `"full-width"`; defaults to Astro's `image.layout`. |
+| `fit` | Sets CSS `object-fit` through Astro's layout attributes when `layout` is not `"none"`; generated URLs always use `fit=cover`. |
+| `position` | Sets CSS `object-position` through Astro's layout attributes when `layout` is not `"none"`; generated URLs never include `position`. |
 | `priority` | Load eagerly and request high fetch priority. |
 | `pictureAttributes` | Attributes to apply to the wrapping `<picture>`. |
 

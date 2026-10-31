@@ -9,7 +9,7 @@ const FALLBACK_EXCLUDED_ATTRIBUTES = new Set(["layout", "fit", "position", "prio
 export async function pictureModel(props, context) {
 	const image = normalizeMedia(props.image);
 	const darkImage = normalizeMedia(props.darkVariant ?? image?.darkVariant);
-	const source = props.src ?? mediaUrl(image, context.locals);
+	const source = isUrl(props.src) ? props.src : mediaUrl(image, context.locals);
 	if (!isUrl(source)) return { variants: [] };
 
 	const alt = props.alt ?? image?.alt ?? "";
