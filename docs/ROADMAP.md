@@ -12,10 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **`Picture` follow-ups from plan 004.** Decide whether layout `none` applies
-   `imageConfig.objectFit` / `objectPosition` as Astro's `Picture` does; the missing tests and
-   edge cases listed in plan 004's Outcome, Follow-ups.
-2. **Release 0.2.0.** The `Picture` component is merged (plan 004). The owner's step: follow
+1. **Small `Picture` follow-ups from plan 005.** README `fit=cover` wording, the `full-width`
+   render case without the URL helper, and the edge cases kept from plan 004; details in plan
+   005's Outcome, Follow-ups. None blocks 0.2.0.
+2. **Release 0.2.0.** The `Picture` component is merged (plan 004) and its follow-ups (plan 005). The owner's step: follow
    `docs/RELEASING.md` (npm scope, login, two-factor, then prepare, commit, tag, publish, push). Before it, consider moving the `globalThis`-keys
    entry in `CHANGELOG.md` from `### Added` to `### Changed` (plan 003's Outcome).
 3. **CI.** Add CI for this repository.
@@ -58,3 +58,8 @@ adopts the package on its own side.
    over an internal `pictureModel`; `pictureSources()` reads its widths and `getImage` from
    `astro:assets` when not passed and forwards and returns `attributes`; a vitest Container API
    render test (`npm test` runs `node --test && vitest run`). Unreleased, for 0.2.0.
+4. **`Picture` follow-ups — plan 005** (merge `7a58534`). Generated public media URLs carry no
+   `position` and only `fit=cover`, so images with an Astro `layout` pass `/_image` instead of
+   404 (`### Fixed`); an empty `src` counts as unset; the layout name is `"full-width"`; render
+   tests parse every rendered URL with the package's `parseURL`; `vitest --reporter=verbose`;
+   layout `none` keeps ignoring `imageConfig.objectFit` / `objectPosition`, now pinned by a test.

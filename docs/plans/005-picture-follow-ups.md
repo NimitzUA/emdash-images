@@ -191,4 +191,37 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `7a58534` (`--no-ff` of `task/005-picture-follow-ups` onto `d485492`). Task
+  commits: T1 `2490285` (review 1 PASS), T2 `406fd41` (review 1 PASS), T3 `b4eb72a` (review 1
+  PASS). No fix rounds. Gates: `GATES OK`; `git diff main -- src/guard.mjs src/sources.mjs
+  src/index.mjs src/index.d.mts` empty; `RELEASE OK 0.1.0` in the worktree. Lockfile unchanged,
+  so no install on main; `VERIFY OK`. Tests at merge: 128 `node --test`, 9 vitest render cases
+  (listed by name in the check log with `--reporter=verbose`). `version` stays `0.1.0`; nothing
+  tagged, pushed or published.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:**
+  - T2's Ownership note said `createImageApi` is used only in `test/picture.test.mjs`;
+    `test/sources.test.mjs` has its own pre-existing factory of that name. T2 changed only the
+    one in `test/picture.test.mjs` (confirmed by review 1).
+  - T3's commit could not be signed: the executor failed twice with
+    `1Password: failed to fill whole buffer`, although `sign-probe.sh` printed `SIGN OK` at the
+    start. The architect's own commit of the staged files signed. Fourth run in a row with a
+    mid-run signing failure in a Codex terminal (plans 002-005).
+- **Deviations:**
+  - T3 was committed by the architect from the executor's staged changes, unchanged, with the
+    task's message.
+- **Follow-ups:**
+  - README's `fit`/`position` rows say "generated URLs always use `fit=cover`"; with no fit set
+    the URL carries no `fit` at all (`src/service.mjs:337`). The wording came from this plan's
+    Change; "`fit=cover` when any fit is set" would be exact.
+  - The `full-width` render case checks `data-astro-image` and `sizes` but does not run its
+    URLs through the `parseURL` helper.
+  - `src/picture.mjs:12` now uses `isUrl(props.src)`, so a non-string `src` also falls back to
+    the media URL (within this plan's "non-empty string" rule).
+  - The new service test's fake `getURL` builds an absolute URL where Astro builds a relative
+    endpoint path; irrelevant to `parseURL`.
+  - Still open from plan 004, kept by this plan's Context: `getImage: null` with an
+    `imageConfig` throws; `picture` is `{}` with no attributes; without `imageConfig`,
+    `pictureSources()` retries the `astro:assets` import on each call under `node --test`.
+  - Tooling: 1Password signing still fails mid-run in Codex terminals.
+- **Proposed rules:** None: the run had no findings.
