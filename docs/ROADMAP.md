@@ -13,19 +13,26 @@ adopts the package on its own side.
 ## Open
 
 1. **`Picture` component.** A package `Picture` component on `pictureSources`, designed from the
-   package's own API. Open question: ADR-0002 keeps markup out of the package, so this item
-   needs the owner's decision (and a new ADR if it stays).
-2. **Release 0.2.0.** The owner's step: follow `docs/RELEASING.md` (npm scope, login, two-factor,
-   then prepare, commit, tag, publish, push). Before it, consider moving the `globalThis`-keys
+   package's own API, as ADR-0004 (2026-10-31) decides: `@nimitzua/emdash-images/Picture.astro`
+   replaces `emdash/ui` `Image` for image fields, with AVIF and WebP sources, `layout`, the dark
+   variant, the focal point and `pictureAttributes`; the content hash comes from the site as a
+   prop. The same plan makes `pictureSources()` read its widths and `getImage` from
+   `astro:assets` when the caller passes none. It ships in 0.2.0.
+2. **Release 0.2.0.** Waits for the `Picture` component (item 1). The owner's step: follow
+   `docs/RELEASING.md` (npm scope, login, two-factor, then prepare, commit, tag, publish, push). Before it, consider moving the `globalThis`-keys
    entry in `CHANGELOG.md` from `### Added` to `### Changed` (plan 003's Outcome).
 3. **CI.** Add CI for this repository.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
-   and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first.
+   and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
+   answers ADR-0004's open question (a content-hash lookup without the site's help), since the
+   guard too reads EmDash's `media` table directly.
 5. **Small CLI follow-ups from plan 002.** A unit test for a valid `--origin` with an invalid
    `--public-origin`; `warm`'s `.dev/image-cache` fallback resolves against `process.cwd()`, not
    `runCli`'s `cwd`; the CLI trims config `cacheDirectory` while the service does not. Details in
    plan 002's Outcome, Follow-ups.
+6. **Portable Text images and the placeholder.** After item 1 (ADR-0004 «Next»): a Portable
+   Text image block component on the same code as `Picture`, and the LQIP placeholder.
 
 ## Out of scope
 
