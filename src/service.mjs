@@ -331,7 +331,12 @@ async function transformWithFallback(service, inputBuffer, transform, imageConfi
 function normalizeGeneratedTransform(imageTransform, imageConfig) {
 	const sourceUrl = typeof imageTransform?.src === "string" ? imageTransform.src : imageTransform?.src?.src;
 	if (mediaSource(sourceUrl, imageConfig)?.kind !== "public") return imageTransform;
-	return { ...imageTransform, height: undefined };
+	return {
+		...imageTransform,
+		height: undefined,
+		fit: imageTransform.fit ? "cover" : undefined,
+		position: undefined,
+	};
 }
 
 async function createCacheIdentity(inputBuffer, transform, imageConfig, requestContext, cacheDirectory) {

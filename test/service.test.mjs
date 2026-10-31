@@ -896,6 +896,58 @@ test("getURL carries one media version and parseURL rejects malformed or repeate
 		"private storage keys never receive a public cache version");
 });
 
+test("getURL normalizes public fit and position while preserving private and non-media transforms", async () => {
+	const delegatedTransforms = [];
+	const service = createImageService({
+		getURL(transform) {
+			delegatedTransforms.push(transform);
+			const url = new URL("/_image", "https://site.test");
+			url.searchParams.set("href", transform.src);
+			url.searchParams.set("w", String(transform.width));
+			url.searchParams.set("f", transform.format);
+			if (transform.fit) url.searchParams.set("fit", transform.fit.toString());
+			if (transform.position) url.searchParams.set("position", transform.position.toString());
+			return url.href;
+		},
+		parseURL(url) {
+			return {
+				src: url.searchParams.get("href"),
+				width: Number(url.searchParams.get("w")),
+				height: url.searchParams.get("h") ? Number(url.searchParams.get("h")) : undefined,
+				format: url.searchParams.get("f"),
+				fit: url.searchParams.get("fit") ?? undefined,
+				position: url.searchParams.get("position") ?? undefined,
+			};
+		},
+	}, { cacheDirectory: "/unused" });
+
+	const generated = await service.getURL({ ...publicImageTransform, fit: "contain", position: "top" }, imageConfig(), {});
+	assert.equal(delegatedTransforms[0].fit, "cover");
+	assert.equal(delegatedTransforms[0].position, undefined);
+	assert.equal(delegatedTransforms[0].height, undefined);
+	assert.notEqual(await service.parseURL(new URL(generated), imageConfig(), {}), undefined,
+		"the Astro-style URL with only fit=cover passes parseURL");
+
+	const withoutFit = { ...publicImageTransform };
+	delete withoutFit.fit;
+	await service.getURL(withoutFit, imageConfig(), {});
+	assert.equal(delegatedTransforms[1].fit, undefined, "an unset fit stays unset");
+
+	const privateTransform = {
+		...publicImageTransform,
+		src: "https://site.test/_emdash/api/media/file/private-cases/case/photo.png",
+		fit: "contain",
+		position: "top",
+	};
+	await service.getURL(privateTransform, imageConfig(), {});
+	assert.equal(delegatedTransforms[2].fit, "contain");
+	assert.equal(delegatedTransforms[2].position, "top");
+
+	const nonMediaTransform = { ...publicImageTransform, src: "https://site.test/uploads/photo.png", fit: "contain", position: "top" };
+	await service.getURL(nonMediaTransform, imageConfig(), {});
+	assert.deepEqual(delegatedTransforms[3], nonMediaTransform, "non-media transforms pass through unchanged");
+});
+
 test("a valid version does not change the encoded image transform", async () => {
 	await withCacheDirectory(async (cacheDirectory) => {
 		let calls = 0;

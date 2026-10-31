@@ -19,6 +19,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ### Fixed
 
+- Generated public media URLs carry no `position` and only `fit=cover`, so images rendered with an Astro `layout` (or a non-`cover` `image.objectFit`) pass the `/_image` checks instead of returning 404.
 - Resolve relative `UPLOADS_DIR` values against the current working directory.
 - Validate warm-up origins as absolute HTTP(S) URLs and require `--origin` when using `--public-origin`.
 
