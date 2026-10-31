@@ -8,22 +8,31 @@ export interface PictureSourceInput {
 	srcsetWidths?: readonly number[];
 	/** Caller context only; transformability is determined by the getImage probe. */
 	origin?: string;
+	/** Additional Astro image options, except keys owned by `pictureSources`. */
+	attributes?: Record<string, unknown>;
 }
 
 export interface PictureSourcesOptions {
 	publicWidths?: readonly number[];
 	smallWidths?: readonly number[];
 	fit?: string;
-	getImage: (options: any) => Promise<{
+	/**
+	 * Image transformer; when omitted, `getImage` is read from `astro:assets`.
+	 */
+	getImage?: (options: any) => Promise<{
 		src: string;
 		srcSet: { attribute: string };
+		attributes?: Record<string, unknown>;
 	}>;
+	/** Image config; when omitted, `imageConfig` is read from `astro:assets`. */
+	imageConfig?: unknown;
 }
 
 export interface PictureSources {
 	avifSrcset: string;
 	webpSrcset: string;
 	src: string;
+	attributes: Record<string, unknown>;
 	/** The hash version used in URLs, or undefined when no valid hash was supplied. */
 	v: string | undefined;
 	widths: number[];

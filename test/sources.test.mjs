@@ -40,6 +40,7 @@ test("pictureSources builds versioned responsive sources for a local image", asy
 		avifSrcset: "avif-640?v=abcdef0123456789 640w, avif-1080?v=abcdef0123456789 1080w",
 		webpSrcset: "webp-640?v=abcdef0123456789 640w, webp-1080?v=abcdef0123456789 1080w",
 		src: "webp-1080?v=abcdef0123456789",
+		attributes: {},
 		v: "abcdef0123456789",
 		widths: [640, 1080],
 	});
@@ -73,6 +74,7 @@ test("pictureSources builds unversioned responsive sources when the content hash
 		avifSrcset: "avif-640 640w, avif-1080 1080w",
 		webpSrcset: "webp-640 640w, webp-1080 1080w",
 		src: "webp-1080",
+		attributes: {},
 		v: undefined,
 		widths: [640, 1080],
 	});
@@ -102,6 +104,7 @@ test("pictureSources transforms a non-local source when getImage produces a vari
 		avifSrcset: "avif-640?v=abcdef0123456789 640w, avif-1080?v=abcdef0123456789 1080w",
 		webpSrcset: "webp-640?v=abcdef0123456789 640w, webp-1080?v=abcdef0123456789 1080w",
 		src: "webp-1080?v=abcdef0123456789",
+		attributes: {},
 		v: "abcdef0123456789",
 		widths: [640, 1080],
 	});
@@ -123,4 +126,111 @@ test("pictureSources returns undefined when getImage leaves a non-local source u
 	assert.equal(result, undefined);
 	assert.equal(calls.length, 1);
 	assert.equal(calls[0].src, unchangedSource);
+});
+
+test("pictureSources uses widths from imageConfig when options do not provide them", async () => {
+	const { getImage } = createImageApi();
+	const result = await pictureSources(
+		{ src, width: 1600, height: 1000, origin },
+		{
+			getImage,
+			imageConfig: { service: { config: { publicWidths: [640, 1200], smallWidths: [320] } } },
+		},
+	);
+
+	assert.deepEqual(result?.widths, [640, 1200]);
+});
+
+test("pictureSources lets explicit publicWidths override imageConfig", async () => {
+	const { getImage } = createImageApi();
+	const result = await pictureSources(
+		{ src, width: 1600, height: 1000, origin },
+		{
+			getImage,
+			publicWidths: [640],
+			imageConfig: { service: { config: { publicWidths: [640, 1200], smallWidths: [320] } } },
+		},
+	);
+
+	assert.deepEqual(result?.widths, [640]);
+});
+
+test("pictureSources uses default publicWidths when options and imageConfig have none", async () => {
+	const { getImage } = createImageApi();
+	const result = await pictureSources(
+		{ src, width: 2000, height: 1250, origin },
+		{ getImage },
+	);
+
+	assert.deepEqual(result?.widths, [640, 1080, 1600, 1920]);
+});
+
+test("pictureSources forwards attributes only to format calls and returns WebP attributes", async () => {
+	const calls = [];
+	const webpAttributes = { sizes: "100vw", "data-astro-image": "constrained" };
+	const getImage = async (imageOptions) => {
+		calls.push(imageOptions);
+		if (!imageOptions.widths) return { src: `${imageOptions.src}?probe=1` };
+		const srcSet = imageOptions.widths
+			.map((candidateWidth) => `${imageOptions.format}-${candidateWidth} ${candidateWidth}w`)
+			.join(", ");
+		return {
+			src: `${imageOptions.format}-${imageOptions.width}`,
+			srcSet: { attribute: srcSet },
+			attributes: imageOptions.format === "webp" ? webpAttributes : { sizes: "avif-only" },
+		};
+	};
+	const attributes = {
+		class: "image-frame",
+		sizes: "(max-width: 1200px) 100vw, 1200px",
+		fit: "contain",
+		src: "forged.jpg",
+		width: 1,
+		height: 2,
+		widths: [1],
+		densities: [2],
+		format: "jpeg",
+		mediaVersion: "forged",
+	};
+	const result = await pictureSources(
+		{ src, width: 1200, height: 800, contentHash, origin, attributes },
+		{ ...options, getImage },
+	);
+
+	const probe = calls.find((call) => !call.widths);
+	const formatCalls = calls.filter((call) => call.widths);
+	assert.equal(formatCalls.length, 2);
+	assert.equal(probe.src, src);
+	assert.equal(Object.hasOwn(probe, "class"), false);
+	assert.equal(Object.hasOwn(probe, "sizes"), false);
+	assert.deepEqual(formatCalls.map((call) => call.format).sort(), ["avif", "webp"]);
+	for (const call of formatCalls) {
+		assert.equal(call.class, "image-frame");
+		assert.equal(call.sizes, attributes.sizes);
+		assert.equal(call.fit, "contain");
+		assert.equal(call.src, src);
+		assert.equal(call.width, 1080);
+		assert.equal(call.height, 720);
+		assert.deepEqual(call.widths, [640, 1080]);
+		assert.equal(call.mediaVersion, "abcdef0123456789");
+		assert.equal(Object.hasOwn(call, "densities"), false);
+	}
+	assert.deepEqual(result.attributes, webpAttributes);
+});
+
+test("pictureSources prefers options.fit over attributes.fit", async () => {
+	const { calls, getImage } = createImageApi();
+	await pictureSources(
+		{ src, width: 1200, height: 800, origin, attributes: { fit: "contain" } },
+		{ ...options, getImage, fit: "cover" },
+	);
+
+	assert.ok(calls.filter((call) => call.widths).every((call) => call.fit === "cover"));
+});
+
+test("pictureSources rejects when getImage is unavailable", async () => {
+	await assert.rejects(
+		pictureSources({ src, width: 1200, height: 800 }),
+		/requires a getImage function/,
+	);
 });
