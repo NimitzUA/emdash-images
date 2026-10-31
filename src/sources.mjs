@@ -2,8 +2,18 @@ import { contentHashVersion } from "./layout.mjs";
 import { DEFAULT_IMAGE_OPTIONS } from "./options.mjs";
 import { publicResponsiveImageWidths } from "./service.mjs";
 
+const PACKAGE_IMAGE_OPTION_KEYS = new Set([
+	"src",
+	"width",
+	"height",
+	"widths",
+	"densities",
+	"format",
+	"mediaVersion",
+]);
+
 export async function pictureSources(
-	{ src, width, height, contentHash, srcsetWidths },
+	{ src, width, height, contentHash, srcsetWidths, attributes },
 	options = {},
 ) {
 	const originalWidth = positiveDimension(width);
@@ -11,13 +21,35 @@ export async function pictureSources(
 	const version = contentHashVersion(contentHash);
 	if (!originalWidth || !originalHeight) return undefined;
 
-	if (typeof options.getImage !== "function") {
+	let astroGetImage;
+	let astroImageConfig;
+	if (options.getImage === undefined || options.imageConfig === undefined) {
+		try {
+			const astroAssets = await import("astro:assets");
+			astroGetImage = astroAssets.getImage;
+			astroImageConfig = astroAssets.imageConfig;
+		} catch {
+			// `astro:assets` is provided by Astro and is unavailable in plain Node tests.
+		}
+	}
+	const getImage = options.getImage ?? astroGetImage;
+	const imageConfig = options.imageConfig ?? astroImageConfig;
+	if (typeof getImage !== "function") {
 		throw new TypeError("pictureSources requires a getImage function");
 	}
 
-	const publicWidths = options.publicWidths ?? DEFAULT_IMAGE_OPTIONS.publicWidths;
+	const serviceConfig = imageConfig?.service?.config;
+	const publicWidths = options.publicWidths
+		?? (Array.isArray(serviceConfig?.publicWidths)
+			? serviceConfig.publicWidths
+			: DEFAULT_IMAGE_OPTIONS.publicWidths);
+	const smallWidths = options.smallWidths
+		?? (Array.isArray(serviceConfig?.smallWidths)
+			? serviceConfig.smallWidths
+			: DEFAULT_IMAGE_OPTIONS.smallWidths);
+	const widthOptions = { publicWidths, smallWidths };
 	const smallestPublicWidth = Math.min(...publicWidths);
-	const availableWidths = publicResponsiveImageWidths(originalWidth, srcsetWidths, options);
+	const availableWidths = publicResponsiveImageWidths(originalWidth, srcsetWidths, widthOptions);
 	const sourceWidthVariant = srcsetWidths !== undefined && originalWidth < smallestPublicWidth
 		? [originalWidth]
 		: [];
@@ -32,7 +64,6 @@ export async function pictureSources(
 	const transformHeight = Math.round(transformWidth * originalHeight / originalWidth);
 	const imageWidth = Math.min(transformWidth, originalWidth);
 	const imageHeight = Math.round(imageWidth * originalHeight / originalWidth);
-	const getImage = options.getImage;
 
 	let probe;
 	try {
@@ -47,13 +78,17 @@ export async function pictureSources(
 	}
 	if (!probe?.src || probe.src === src) return undefined;
 
+	const forwardedAttributes = Object.fromEntries(
+		Object.entries(attributes ?? {}).filter(([key]) => !PACKAGE_IMAGE_OPTION_KEYS.has(key)),
+	);
 	const transform = {
+		...forwardedAttributes,
 		src,
 		width: imageWidth,
 		height: imageHeight,
 		widths,
 		...(version === undefined ? {} : { mediaVersion: version }),
-		fit: options.fit ?? "cover",
+		fit: options.fit ?? attributes?.fit ?? "cover",
 	};
 	const [avifImage, webpImage] = await Promise.all([
 		getImage({ ...transform, format: "avif" }),
@@ -65,6 +100,7 @@ export async function pictureSources(
 		avifSrcset: avifImage.srcSet.attribute,
 		webpSrcset: webpImage.srcSet.attribute,
 		src: webpImage.src,
+		attributes: webpImage.attributes ?? {},
 		v: version,
 		widths,
 	};

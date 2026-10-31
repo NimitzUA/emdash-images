@@ -1,8 +1,8 @@
 # @nimitzua/emdash-images
 
-Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, cache warm-up, and media backfill and cleanup helpers.
+Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, an optional `Picture.astro` component for EmDash image fields, cache warm-up, and media backfill and cleanup helpers.
 
-The package does not provide an Astro `<Picture>` component or site markup. Each site owns its media queries, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
+The package ships one optional component, `Picture.astro`, for EmDash image fields. Each site still owns art direction, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
 
 ## Supported versions
 
@@ -125,11 +125,50 @@ The native plugin declares the `content:read` capability and uses only the `cont
 
 This is a native plugin package and runs in the same process as the EmDash site. Its code has the authority available to that process, including filesystem access, environment variables, and direct network calls. The declared `content:read` capability gates EmDash plugin APIs; it is not a sandbox for native code. Install and review it as a trusted site dependency. See EmDash’s “Distributing native plugins” guide.
 
-## `pictureSources` and site markup
+## `Picture` component
 
-`pictureSources()` returns unversioned URLs when a content hash is missing. It returns `undefined` only when the source cannot be transformed. The package does not render the `<picture>` element.
+Import `Picture.astro` to render an EmDash image field:
 
-Astro's `data-image-component` development marker belongs to the site component. A site `Picture` component that builds `<picture>` by hand must forward `image.layout`, scoped-style attributes, and any other image attributes it uses.
+```astro
+---
+import Picture from "@nimitzua/emdash-images/Picture.astro";
+---
+
+<Picture
+	image={entry.data.featured_image}
+	contentHash={featuredImageContentHash}
+	sizes="(min-width: 60rem) 50vw, 100vw"
+/>
+```
+
+`Picture` accepts an EmDash media value or a URL string. `src`, `width`, `height`, and `alt` can override the image value; a direct `src` can also be used with dimensions and no `image`.
+
+| Prop | Description |
+| --- | --- |
+| `image` | EmDash media value, URL string, or `null`. |
+| `darkVariant` | Alternate dark image value or URL; defaults to `image.darkVariant`. |
+| `src` | Source URL override. |
+| `width` | Width override in pixels; image dimensions are used by default. |
+| `height` | Height override in pixels; image dimensions are used by default. |
+| `alt` | Alternative text override; defaults to the image value's `alt`, then an empty string. |
+| `contentHash` | The primary media row's `content_hash`, used to version generated URLs. |
+| `darkContentHash` | The dark variant's `content_hash`, used to version its generated URLs. |
+| `srcsetWidths` | Additional responsive width candidates, subject to the configured public and small widths. |
+| `layout` | `"none"`, `"constrained"`, `"fixed"`, or `"fullWidth"`; defaults to Astro's `image.layout`. |
+| `fit` | Image transform fit override. |
+| `position` | Image transform position override. |
+| `priority` | Load eagerly and request high fetch priority. |
+| `pictureAttributes` | Attributes to apply to the wrapping `<picture>`. |
+
+Standard `<img>` attributes such as `sizes`, `loading`, `decoding`, `class`, `style`, and `id` pass through to the `<img>`. The component does not query for `content_hash`: fetch hashes for the page's media IDs in one site-owned query, then pass each matching value as `contentHash` (and `darkContentHash` for a dark variant). Without a valid hash, generated URLs are unversioned.
+
+When an EmDash image is resolved by its media ID, Astro must allow its path in `image.remotePatterns`, for example `{ pathname: "/_emdash/api/media/file/**" }`. External providers and other sources Astro cannot transform render a plain `<img>` with the resolved URL.
+
+When a dark variant resolves, the component renders the primary and dark variants and applies `emdash-image--light` and `emdash-image--dark` classes to their `<img>` elements. A `dark` or `light` class on `<html>` overrides the system `prefers-color-scheme`; without either class, the component follows that preference. Portable Text images and the placeholder are not covered yet.
+
+### Custom markup with `pictureSources`
+
+Use `pictureSources()` when site markup needs art direction or output beyond this component. When omitted, `getImage` and `imageConfig` come from `astro:assets`; `publicWidths` and `smallWidths` come from its service configuration (or package defaults if Astro has no configured values). Its input `attributes` are forwarded to image transforms, and the returned `attributes` are the generated image attributes. A hand-built component must forward scoped-style attributes, along with `image.layout` and any other image attributes it uses.
 
 ## Command line
 

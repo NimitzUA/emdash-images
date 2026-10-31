@@ -18,13 +18,25 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
    `withImageGuard` wraps the site's private-access handler. Pass its storage-key list and set `onDeniedStorageKey` to the site's private 404 response. Point EmDash's `middleware.outer` at that composed module. The package does not install the guard automatically.
 
-5. **Pass the same lists to scheduled warm-up.** Manual publish and media-replacement call sites should call `scheduleImageWarmup({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` using values from `imageOptions`. Any code that manually starts a warm-up should pass those lists to `warmPublicSite()` too.
+5. **Render image fields with `Picture`.** Import `Picture` from `@nimitzua/emdash-images/Picture.astro` and pass an EmDash image value with its `contentHash`:
 
-6. **Make the package available in the runtime image.** Ensure the installed package is present in the runtime image's `node_modules` tree. Set `IMAGE_CACHE_DIR` in the runtime environment to the image cache directory.
+   ```astro
+   ---
+   import Picture from "@nimitzua/emdash-images/Picture.astro";
+   ---
 
-7. **Backfill, then warm twice.** Run `npx emdash-images backfill --config ./src/lib/image-options.mjs` in dry-run mode and review it, then add `--write` to fill missing media metadata. The site must be running, and the `warm` command's environment or `--env-file` must carry the same valid `PORT` or `SITE_PORT` the site listens on; otherwise pass `--origin`. Run `npx emdash-images warm --config ./src/lib/image-options.mjs` twice. The first run may generate variants; the second should report `Generated: 0` and no failures.
+   <Picture image={entry.data.featured_image} contentHash={featuredImageContentHash} sizes="(min-width: 60rem) 50vw, 100vw" />
+   ```
 
-8. **Review cache cleanup before deleting.** Run `npx emdash-images cleanup --config ./src/lib/image-options.mjs`, inspect its dry-run report, then rerun with `--delete` when the candidates are expected. Encoder changes create a new cache namespace.
+   The component does not query for the hash. Fetch `content_hash` for the page's media IDs in one site-owned query and pass the matching value; without it, generated URLs are unversioned. Astro's `image.remotePatterns` must allow `/_emdash/api/media/file/**` for EmDash media paths.
+
+6. **Pass the same lists to scheduled warm-up.** Manual publish and media-replacement call sites should call `scheduleImageWarmup({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` using values from `imageOptions`. Any code that manually starts a warm-up should pass those lists to `warmPublicSite()` too.
+
+7. **Make the package available in the runtime image.** Ensure the installed package is present in the runtime image's `node_modules` tree. Set `IMAGE_CACHE_DIR` in the runtime environment to the image cache directory.
+
+8. **Backfill, then warm twice.** Run `npx emdash-images backfill --config ./src/lib/image-options.mjs` in dry-run mode and review it, then add `--write` to fill missing media metadata. The site must be running, and the `warm` command's environment or `--env-file` must carry the same valid `PORT` or `SITE_PORT` the site listens on; otherwise pass `--origin`. Run `npx emdash-images warm --config ./src/lib/image-options.mjs` twice. The first run may generate variants; the second should report `Generated: 0` and no failures.
+
+9. **Review cache cleanup before deleting.** Run `npx emdash-images cleanup --config ./src/lib/image-options.mjs`, inspect its dry-run report, then rerun with `--delete` when the candidates are expected. Encoder changes create a new cache namespace.
 
 ## Common mistakes
 
@@ -35,5 +47,5 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 ## Package behavior to preserve
 
 - `pictureSources()` creates unversioned URLs when a media row has no content hash; it returns `undefined` only when the source cannot be transformed.
-- The package does not render `<picture>`. Astro's `data-image-component` development marker is site-owned. A hand-built site component must forward `image.layout`, scoped-style attributes, and other image attributes that it uses.
+- `Picture.astro` renders image fields, and `pictureSources()` reads configured widths from `astro:assets` when `publicWidths` or `smallWidths` are not passed. Astro's `data-image-component` development marker is site-owned. A hand-built site component must forward `image.layout`, scoped-style attributes, and other image attributes that it uses.
 - A site that manually handles successful publish or media replacement should pass the same deny lists to the scheduler as the native plugin descriptor.

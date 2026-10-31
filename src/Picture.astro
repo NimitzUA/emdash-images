@@ -1,0 +1,61 @@
+---
+import { getImage, imageConfig } from "astro:assets";
+import type { HTMLAttributes } from "astro/types";
+import type { ImageValue, MediaValue } from "emdash";
+import { pictureModel } from "./picture.mjs";
+
+interface Props extends Omit<HTMLAttributes<"img">, "src" | "width" | "height"> {
+	image?: ImageValue | string | null;
+	darkVariant?: MediaValue | string | null;
+	src?: string;
+	width?: number;
+	height?: number;
+	alt?: string;
+	contentHash?: string;
+	darkContentHash?: string;
+	srcsetWidths?: number[];
+	layout?: "none" | "constrained" | "fixed" | "fullWidth";
+	fit?: string;
+	position?: string;
+	priority?: boolean;
+	pictureAttributes?: HTMLAttributes<"picture">;
+}
+
+const { variants } = await pictureModel(Astro.props, {
+	getImage,
+	imageConfig,
+	locals: Astro.locals,
+	url: Astro.url,
+});
+---
+
+{variants.map(({ picture, sources, img }) =>
+	picture ? (
+		<picture {...picture}>
+			{sources.map((source) => <source {...source} />)}
+			<img {...img} />
+		</picture>
+	) : (
+		<img {...img} />
+	),
+)}
+
+<style is:global>
+	/* A `dark` or `light` class on <html> wins over the system preference. */
+	:where(:root.dark) .emdash-image--light {
+		display: none;
+	}
+	:where(:root.light) .emdash-image--dark {
+		display: none;
+	}
+	@media (prefers-color-scheme: dark) {
+		:where(:root:not(.light)) .emdash-image--light {
+			display: none;
+		}
+	}
+	@media (prefers-color-scheme: light) {
+		:where(:root:not(.dark)) .emdash-image--dark {
+			display: none;
+		}
+	}
+</style>
