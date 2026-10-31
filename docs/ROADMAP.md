@@ -12,13 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **`Picture` component.** A package `Picture` component on `pictureSources`, designed from the
-   package's own API, as ADR-0004 (2026-10-31) decides: `@nimitzua/emdash-images/Picture.astro`
-   replaces `emdash/ui` `Image` for image fields, with AVIF and WebP sources, `layout`, the dark
-   variant, the focal point and `pictureAttributes`; the content hash comes from the site as a
-   prop. The same plan makes `pictureSources()` read its widths and `getImage` from
-   `astro:assets` when the caller passes none. It ships in 0.2.0.
-2. **Release 0.2.0.** Waits for the `Picture` component (item 1). The owner's step: follow
+1. **`Picture` follow-ups from plan 004.** Decide whether layout `none` applies
+   `imageConfig.objectFit` / `objectPosition` as Astro's `Picture` does; the missing tests and
+   edge cases listed in plan 004's Outcome, Follow-ups.
+2. **Release 0.2.0.** The `Picture` component is merged (plan 004). The owner's step: follow
    `docs/RELEASING.md` (npm scope, login, two-factor, then prepare, commit, tag, publish, push). Before it, consider moving the `globalThis`-keys
    entry in `CHANGELOG.md` from `### Added` to `### Changed` (plan 003's Outcome).
 3. **CI.** Add CI for this repository.
@@ -31,7 +28,7 @@ adopts the package on its own side.
    `--public-origin`; `warm`'s `.dev/image-cache` fallback resolves against `process.cwd()`, not
    `runCli`'s `cwd`; the CLI trims config `cacheDirectory` while the service does not. Details in
    plan 002's Outcome, Follow-ups.
-6. **Portable Text images and the placeholder.** After item 1 (ADR-0004 «Next»): a Portable
+6. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
    Text image block component on the same code as `Picture`, and the LQIP placeholder.
 
 ## Out of scope
@@ -55,3 +52,9 @@ adopts the package on its own side.
    dates `CHANGELOG.md`; `package.json` is npm-ready (`publishConfig.access` public,
    `prepublishOnly` runs tests and verify, `CHANGELOG.md` in `files`); README and SKILL install
    from npm; `docs/RELEASING.md` holds the owner's procedure. Still at 0.1.0, nothing published.
+3. **`Picture` component — plan 004** (merge `eb916a1`). ADR-0004 in place:
+   `@nimitzua/emdash-images/Picture.astro` renders EmDash image fields with AVIF and WebP
+   sources, hash-versioned URLs, `layout`, dark variant, focal point and `pictureAttributes`,
+   over an internal `pictureModel`; `pictureSources()` reads its widths and `getImage` from
+   `astro:assets` when not passed and forwards and returns `attributes`; a vitest Container API
+   render test (`npm test` runs `node --test && vitest run`). Unreleased, for 0.2.0.

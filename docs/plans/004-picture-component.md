@@ -282,4 +282,52 @@ task adds its `CHANGELOG.md` entry under `## Unreleased`. No `version` bump, tag
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `eb916a1` (`--no-ff` of `task/004-picture-component` onto `64ee7e2`). Task
+  commits: T1 `5971b50` (review 1 PASS), T2 `94f37ac` (review 1 FIX, fix round 1, review 2
+  PASS), T3 `91dd7d1` (review 1 PASS), T4 `8cd89a1` (review 1 PASS). Gates: `GATES OK`;
+  `npm pack --dry-run` lists 28 files, `src/Picture.astro` and `src/picture.mjs` included, no
+  `astro-tests/` or `vitest.config.mjs`; `git diff main -- src/service.mjs src/guard.mjs
+  src/index.mjs src/index.d.mts` empty; `RELEASE OK 0.1.0`. Lockfile changed (`vitest` 5.0.5),
+  so `INSTALL OK` on main, then `VERIFY OK`. Tests at merge: 122 `node --test`, 6 vitest render
+  cases. `version` stays `0.1.0`; nothing tagged, pushed or published.
+- **Decisions:**
+  - Before T2: the plan was amended (`64ee7e2`, see Deviations); T2's spec took the new line.
+  - T3 "dependencies changed, run install": the architect checked that the `package.json` diff
+    held only the `vitest` `^5.0.5` devDependency, the export and `scripts.test`, ran
+    `install-main.sh` in the worktree (`INSTALL OK`) and told the executor the lockfile was its
+    to commit.
+  - T2 review 1 Notes (layout `none` vs `imageConfig.objectFit`, untested `"cover"`/`"center"`
+    defaults) were recorded as follow-ups, not added to the fix round.
+- **Surprises:**
+  - T2's Acceptance grep `-e "emdash"` matched strings the Change itself requires
+    (`locals.emdash`, `/_emdash/api/media/file/`, `emdash-image--*`); found while writing the
+    spec, before T2 started.
+  - T4's commit could not be signed: the executor failed twice with
+    `1Password: No SSH private key found for the specified public key`, and so did the
+    architect's own commit, though `sign-probe.sh` printed `SIGN OK` at the start. The probe
+    then gave `Could not connect to socket. Is the agent running?` and later the same
+    "no key" error; after the user fixed 1Password the architect's commit signed. This is the
+    third run in a row with a mid-run signing failure (plans 002, 003, 004).
+  - T3's render test proves `import("astro:assets")` from `src/sources.mjs` resolves inside a
+    Vite/Astro build (the open question from T1's review).
+- **Deviations:**
+  - Amendment `64ee7e2`: T2's grep matches only imports from `emdash` and `selectFrom`.
+  - T4 was committed by the architect from the staged changes, unchanged, after the user
+    fixed 1Password.
+- **Follow-ups:**
+  - `pictureModel` with layout `none` ignores `imageConfig.objectFit` / `objectPosition`,
+    while Astro's `Picture.astro:61-63` applies them; the code follows this plan's wording.
+    Decide which behavior is wanted.
+  - No test covers the hard-coded `"cover"` / `"center"` defaults, nor a non-`none` layout's
+    default `sizes` in the unit tests; `imageConfig.service.config.smallWidths` has no test of
+    its own; the dark render case uses `image.darkVariant`, not the `darkVariant` prop.
+  - `src: ""` returns `{ variants: [] }` instead of falling back to the media URL;
+    `getImage: null` with an `imageConfig` throws instead of using the fallback; `picture` is
+    `{}`, not `undefined`, with no attributes.
+  - The test fake checks `Object.hasOwn(sizes)` where Astro core uses `sizes ||=`.
+  - Without `imageConfig`, `pictureSources()` retries the failing `astro:assets` import on each
+    call under `node --test` (harmless).
+  - `vitest run` uses the default reporter, which prints no case names; `--reporter=verbose`
+    would make render-test evidence self-evident.
+  - Tooling: 1Password signing fails mid-run in Codex and architect terminals alike.
+- **Proposed rules:** None: the run had one FIX finding (`[test]`, T2), no kind repeated.
