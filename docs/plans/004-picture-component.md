@@ -149,7 +149,7 @@ task adds its `CHANGELOG.md` entry under `## Unreleased`. No `version` bump, tag
 - **Acceptance:**
   - `./scripts/orca/check.sh` ends with `CHECK OK`
   - `test/picture.test.mjs` covers every case listed under Change
-  - `git grep -n -e "emdash" -e "selectFrom" -- src/picture.mjs` prints nothing
+  - `git grep -n -E -e "(from|import\() *[\"']emdash" -e "selectFrom" -- src/picture.mjs` prints nothing
   - `git show --stat --format= HEAD` lists only `src/picture.mjs` and `test/picture.test.mjs`
 - **Commit:** `Add the render model for the Picture component`
 - **Docs:** ADR-0004 «Decision» (Input, Content hash, Output, Fallback, Astro `layout`, Dark
@@ -276,7 +276,9 @@ task adds its `CHANGELOG.md` entry under `## Unreleased`. No `version` bump, tag
 
 ## Amendments
 
-None.
+- 2026-10-31, T2: the Acceptance grep matched the `emdash` strings the Change itself requires
+  (`locals.emdash`, `/_emdash/api/media/file/`, the `emdash-image--*` classes); it now matches
+  only static and dynamic imports from `emdash` and `selectFrom`.
 
 ## Outcome
 
