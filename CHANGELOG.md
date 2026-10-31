@@ -6,6 +6,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ### Added
 
+- `Picture.astro` component (`@nimitzua/emdash-images/Picture.astro`): AVIF and WebP sources with hash-versioned URLs, `layout`, dark variant, focal point and `pictureAttributes` for EmDash image fields.
 - `pictureSources()` forwards `attributes` to `getImage` and returns the resulting image attributes.
 - Add the `emdash-images` command for `backfill`, `cleanup` and `warm`, with `--config`, `--env-file` and documented exit codes.
 - Namespace process-wide `globalThis` state by package name and align maintenance usage strings to `emdash-images`.

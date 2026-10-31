@@ -40,6 +40,7 @@
 			"types": "./src/plugin.d.mts",
 			"import": "./src/plugin.mjs"
 		},
+		"./Picture.astro": "./src/Picture.astro",
 		"./warmup": {
 			"types": "./src/warmup.d.mts",
 			"import": "./src/warmup.mjs"
@@ -70,10 +71,11 @@
 	"devDependencies": {
 		"astro": "^7.3.2",
 		"emdash": "^1.3.0",
-		"sharp": "^0.35.5"
+		"sharp": "^0.35.5",
+		"vitest": "^5.0.5"
 	},
 	"scripts": {
-		"test": "node --test",
+		"test": "node --test && vitest run",
 		"prepublishOnly": "npm test && node scripts/release.mjs verify"
 	}
 }
