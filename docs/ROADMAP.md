@@ -15,16 +15,16 @@ adopts the package on its own side.
 1. **Small `Picture` follow-ups from plan 005.** The `full-width` render case without the URL
    helper, and the edge cases kept from plan 004; details in plan
    005's Outcome, Follow-ups. None blocks 0.2.0.
-2. **First push to GitHub.** The owner's step: `docs/RELEASING.md` «Repository» (point
-   `origin` at GitHub, push `main`, check the first CI run). Its result goes into plan 006's
-   Outcome; a failure becomes a fix plan.
-3. **Release 0.2.0.** Unblocked by plan 007 (merge `9ae4211`): the first attempt (2026-11-01)
-   stopped in `prepublishOnly` on release tests that hard-coded `0.2.0`; they now derive the
-   version from `package.json`. The owner's step, by hand as the first publish:
-   `docs/RELEASING.md` «First release, by hand (0.2.0)», then «Trusted publisher» right before
-   the second release.
-   The `globalThis`-keys entry in `CHANGELOG.md` was moved to `### Changed` on 2026-11-01
-   (plan 003's Outcome).
+2. **Release follow-ups after 0.2.0.** From plan 006's Outcome, Follow-ups:
+   - `package.json` `bin` as `src/bin.mjs` (without `./`), so `npm publish` stops printing the
+     misleading "was invalid and removed" warning; the command ships either way.
+   - `docs/RELEASING.md`: the tag's `Release` run of a by-hand release can fail with `E404`
+     while the registry does not yet show a new package; no action needed. Also restore in
+     «Each later release» how to choose the version.
+   - `verify-tag` wording when `package.json` has no `version`.
+3. **Trusted publisher.** The owner's step right before the second release:
+   `docs/RELEASING.md` «Trusted publisher»; the configuration expires unless a publish succeeds
+   within 2 days.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
@@ -75,7 +75,12 @@ adopts the package on its own side.
    version is already on npm, else `npm publish` through trusted publishing, no tokens);
    `node scripts/release.mjs verify-tag <tag>`; `package.json` `repository`/`homepage`/`bugs`
    and README point at GitHub `nimitzua/emdash-images`; `docs/RELEASING.md` holds the GitHub
-   procedure. Nothing pushed yet.
+   procedure. First CI run on GitHub green (run `41261640735`).
+6. **Release tests for any version — plan 007** (merge `9ae4211`). The `prepareRelease` tests
+   derive the next version from `package.json`, so `prepublishOnly` passes after `prepare`.
+7. **Release 0.2.0** (commit `6bb7f87`, tag `v0.2.0`, 2026-11-01). Published by hand, the
+   package's first version on npm, with the `emdash-images` command. The tag's `Release` run
+   failed as expected (no trusted publisher yet, the registry still lagging); the tag stays.
 6. **Release tests for any current version — plan 007** (merge `9ae4211`). The `prepareRelease`
    tests in `test/release.test.mjs` compute `nextVersion` (minor plus one) from `package.json`
    instead of the literal `0.2.0`, so `npm test` and `prepublishOnly` pass after

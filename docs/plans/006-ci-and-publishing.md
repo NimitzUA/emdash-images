@@ -236,6 +236,12 @@ None.
   - Before the first CI publish: find why the runner's npm removes `bin[emdash-images]` (the
     local npm does not) and fix it, with a check that fails `release.yml` or CI when the packed
     `package.json` has no `bin`; otherwise the next release ships without the CLI.
+    **Correction (architect, 2026-11-01):** not a bug. The warning comes from
+    `@npmcli/package-json` `lib/normalize.js:57-72` (read in npm 11.20.0): it normalizes
+    `./src/bin.mjs` to `src/bin.mjs`, pushes the misleading text "script name src/bin.mjs was
+    invalid and removed" because the string changed, and keeps `pkg.bin[base] = binTarget`. That
+    is why 0.2.0 on npm shows `{ 'emdash-images': 'src/bin.mjs' }`. A CI publish keeps the
+    command too. Writing `"src/bin.mjs"` in `package.json` stops the warning.
   - `docs/RELEASING.md` «First release, by hand»: say that the tag's `Release` run can fail
     with `E404` when the registry does not yet show the new package, and that this needs no
     action; or have `release.yml` treat that case as published.
