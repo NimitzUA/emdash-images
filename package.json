@@ -13,8 +13,14 @@
 		"webp",
 		"sharp"
 	],
-	"repository": "git+https://git.srv1.parshyn.dev/nimitzua/emdash-images.git",
-	"homepage": "https://git.srv1.parshyn.dev/nimitzua/emdash-images",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/nimitzua/emdash-images.git"
+	},
+	"homepage": "https://github.com/nimitzua/emdash-images#readme",
+	"bugs": {
+		"url": "https://github.com/nimitzua/emdash-images/issues"
+	},
 	"engines": {
 		"node": ">=26"
 	},
