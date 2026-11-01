@@ -202,8 +202,22 @@ None.
   the worktree; `git diff main -- src` empty; `npm pack --dry-run --json` lists 28 files, none
   under `.github/` or `scripts/`. Lockfile unchanged, so no install on main; `VERIFY OK`. Tests
   at merge: 132 `node --test` plus the vitest render cases. `version` stays `0.1.0`; nothing
-  tagged, pushed or published. The first real CI run (the owner's first push of `main` to
-  GitHub) has not happened yet; its result is still to be recorded here.
+  tagged, pushed or published.
+- **First runs on GitHub (2026-11-01, after plan 007 and the by-hand 0.2.0 release):**
+  - `CI`: run `41261640735` on `Add plan 007…` success (34s), the first CI run; run
+    `41262078365` on `Release 0.2.0` success (39s).
+  - `Release` on tag `v0.2.0`: run `41262078304` failure (37s). `verify-tag` and the npm version
+    gate passed; the `registry` step wrote `published=false` although the by-hand publish had
+    already happened (`npm access get status` reported `public`, while `npm view` still
+    returned `E404` minutes later: the registry or its CDN had not caught up on the brand-new
+    package). `npm ci` and `npm publish` then ran; prepublishOnly passed (132 tests, 9 render
+    tests, `RELEASE OK 0.2.0`) and the PUT failed with `E404` because no trusted publisher
+    exists yet. A configuration cause, as `docs/RELEASING.md` «If the CI publish fails»
+    describes; the tag stays.
+  - Both the CI publish and, per the same npm version, possibly the by-hand publish logged
+    `npm warn publish "bin[emdash-images]" script name src/bin.mjs was invalid and removed`
+    (`package.json` `bin` is `./src/bin.mjs`, git mode `100755`): the `emdash-images` command
+    may be missing from the published 0.2.0.
 - **Decisions:** No executor questions; no plan amendments.
 - **Surprises:**
   - All four executor commits signed; the first run since plan 002 without a mid-run
@@ -218,10 +232,12 @@ None.
     tag run.
 - **Deviations:** None.
 - **Follow-ups:**
-  - Record the first CI run on GitHub (`gh run list --workflow ci.yml --limit 1`) here; a
-    failure becomes a fix plan.
-  - The `release.yml` npm version gate and registry check run for the first time on the 0.2.0
-    tag push (expected: publish skipped, version already on npm).
+  - Check `npm view @nimitzua/emdash-images@0.2.0 bin` once the registry shows 0.2.0. If `bin`
+    is missing, the CLI is not installed for users: a fix plan for the `bin` entry and a patch
+    release (0.2.1), which is also the first CI publish through the trusted publisher.
+  - `docs/RELEASING.md` «First release, by hand»: say that the tag's `Release` run can fail
+    with `E404` when the registry does not yet show the new package, and that this needs no
+    action; or have `release.yml` treat that case as published.
   - `docs/RELEASING.md` «Each later release» no longer says to choose the version from
     `## Unreleased` and the version rule; «Version numbers» still covers it (nit).
   - `verify-tag` with a `package.json` lacking `version` prints `... does not match package.json
