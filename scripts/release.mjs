@@ -92,7 +92,7 @@ export async function verifyReleaseTag(root, tag) {
 		problems.push(`Tag ${tag} is not vX.Y.Z`);
 	} else {
 		const { packageJson: version } = await readVersions(root);
-		if (tag !== `v${version}`) {
+		if (version !== null && tag !== `v${version}`) {
 			problems.push(`Tag ${tag} does not match package.json version ${version}`);
 		}
 	}
