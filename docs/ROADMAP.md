@@ -18,8 +18,11 @@ adopts the package on its own side.
 2. **First push to GitHub.** The owner's step: `docs/RELEASING.md` «Repository» (point
    `origin` at GitHub, push `main`, check the first CI run). Its result goes into plan 006's
    Outcome; a failure becomes a fix plan.
-3. **Release 0.2.0.** The owner's step, by hand as the first publish: `docs/RELEASING.md`
-   «First release, by hand (0.2.0)», then «Trusted publisher» right before the second release.
+3. **Release 0.2.0.** Waits for plan 007: the first attempt (2026-11-01) stopped in
+   `prepublishOnly`, because three release tests hard-code `0.2.0` and fail once the version is
+   0.2.0; nothing was published. Then the owner's step, by hand as the first publish:
+   `docs/RELEASING.md` «First release, by hand (0.2.0)», then «Trusted publisher» right before
+   the second release.
    The `globalThis`-keys entry in `CHANGELOG.md` was moved to `### Changed` on 2026-11-01
    (plan 003's Outcome).
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
