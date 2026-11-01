@@ -141,4 +141,6 @@ None.
   - The trusted publisher on npmjs.com is still the owner's step before the next tag
     (`docs/ROADMAP.md` Open).
   - `docs/ROADMAP.md` «Done» lists plan 007 twice (two items numbered 6); left as is.
+  - Both nits fixed by the architect on 2026-11-01: `docs/RELEASING.md` line 20 names
+    «Trusted publisher» before the second release; the duplicate plan 007 item is removed.
 - **Proposed rules:** None: the run had no findings.

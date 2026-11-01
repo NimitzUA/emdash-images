@@ -17,7 +17,8 @@ gh run list --workflow ci.yml --limit 1
 
 ## First release, by hand (0.2.0)
 
-0.2.0 was published by hand on 2026-11-01. Later releases follow «Each later release».
+0.2.0 was published by hand on 2026-11-01. Before the second release, add the trusted publisher
+(«Trusted publisher»); later releases then follow «Each later release».
 
 npm requires the package to exist before a trusted publisher can be added. Before the first
 publish, create the `@nimitzua` scope on npmjs.com, sign in with `npm login`, and enable two-factor

@@ -69,15 +69,13 @@ adopts the package on its own side.
    `node scripts/release.mjs verify-tag <tag>`; `package.json` `repository`/`homepage`/`bugs`
    and README point at GitHub `nimitzua/emdash-images`; `docs/RELEASING.md` holds the GitHub
    procedure. First CI run on GitHub green (run `41261640735`).
-6. **Release tests for any version — plan 007** (merge `9ae4211`). The `prepareRelease` tests
-   derive the next version from `package.json`, so `prepublishOnly` passes after `prepare`.
-7. **Release 0.2.0** (commit `6bb7f87`, tag `v0.2.0`, 2026-11-01). Published by hand, the
-   package's first version on npm, with the `emdash-images` command. The tag's `Release` run
-   failed as expected (no trusted publisher yet, the registry still lagging); the tag stays.
 6. **Release tests for any current version — plan 007** (merge `9ae4211`). The `prepareRelease`
    tests in `test/release.test.mjs` compute `nextVersion` (minor plus one) from `package.json`
    instead of the literal `0.2.0`, so `npm test` and `prepublishOnly` pass after
    `release.mjs prepare 0.2.0`. Test-only; no `CHANGELOG.md` entry.
+7. **Release 0.2.0** (commit `6bb7f87`, tag `v0.2.0`, 2026-11-01). Published by hand, the
+   package's first version on npm, with the `emdash-images` command. The tag's `Release` run
+   failed as expected (no trusted publisher yet, the registry still lagging); the tag stays.
 8. **Release follow-ups after 0.2.0 — plan 008** (merge `5a08cf8`). `package.json` `bin` is
    `src/bin.mjs`, so `npm pkg fix` and `npm publish` find nothing to rewrite; `verify-tag` on a
    `package.json` without `version` reports only `Missing version at package.json`;
