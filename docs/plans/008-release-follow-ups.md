@@ -119,4 +119,26 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `5a08cf8` (`--no-ff` of `task/008-release-follow-ups` onto `31a5d54`). Task
+  commits: T1 `b7e6b8f` (review 1 PASS, no findings), T2 `7ac0dfa` (review 1 PASS, no
+  findings). No fix rounds. Gates: `GATES OK`; `RELEASE OK 0.2.0` in the worktree;
+  `git diff main -- src CHANGELOG.md package-lock.json .github` empty. Lockfile unchanged, so no
+  install on main; `VERIFY OK`. Release tests: `pass 23`, `fail 0`. `version` stays `0.2.0`;
+  nothing tagged, pushed or published.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:**
+  - T1's `worker-release` returned `retained` / `user_takeover` after a settled report; the
+    architect closed the idle executor terminal by hand. T2's release closed its terminal itself.
+  - The reviewer does not run `npm pkg fix` (it writes files), so T1 A3 was `NOT RUN` in
+    review. The architect reran it in the worktree after both reviews: `npm pkg fix` then
+    `git diff --exit-code -- package.json` exited 0 with no output. The executor's report holds
+    the before-change half (`bin` rewritten to `src/bin.mjs`).
+- **Deviations:** None.
+- **Follow-ups:**
+  - `docs/RELEASING.md` line 20 says later releases follow «Each later release», while
+    «Trusted publisher» also comes before the second release; its heading says so (T2 review 1
+    nit, not blocking).
+  - The trusted publisher on npmjs.com is still the owner's step before the next tag
+    (`docs/ROADMAP.md` Open).
+  - `docs/ROADMAP.md` «Done» lists plan 007 twice (two items numbered 6); left as is.
+- **Proposed rules:** None: the run had no findings.

@@ -15,26 +15,19 @@ adopts the package on its own side.
 1. **Small `Picture` follow-ups from plan 005.** The `full-width` render case without the URL
    helper, and the edge cases kept from plan 004; details in plan
    005's Outcome, Follow-ups. None blocks 0.2.0.
-2. **Release follow-ups after 0.2.0.** From plan 006's Outcome, Follow-ups:
-   - `package.json` `bin` as `src/bin.mjs` (without `./`), so `npm publish` stops printing the
-     misleading "was invalid and removed" warning; the command ships either way.
-   - `docs/RELEASING.md`: the tag's `Release` run of a by-hand release can fail with `E404`
-     while the registry does not yet show a new package; no action needed. Also restore in
-     «Each later release» how to choose the version.
-   - `verify-tag` wording when `package.json` has no `version`.
-3. **Trusted publisher.** The owner's step right before the second release:
+2. **Trusted publisher.** The owner's step right before the second release:
    `docs/RELEASING.md` «Trusted publisher»; the configuration expires unless a publish succeeds
    within 2 days.
-4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
+3. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-5. **Small CLI follow-ups from plan 002.** A unit test for a valid `--origin` with an invalid
+4. **Small CLI follow-ups from plan 002.** A unit test for a valid `--origin` with an invalid
    `--public-origin`; `warm`'s `.dev/image-cache` fallback resolves against `process.cwd()`, not
    `runCli`'s `cwd`; the CLI trims config `cacheDirectory` while the service does not. Details in
    plan 002's Outcome, Follow-ups.
-6. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
+5. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
    Text image block component on the same code as `Picture`, and the LQIP placeholder.
 
 ## Out of scope
@@ -85,3 +78,8 @@ adopts the package on its own side.
    tests in `test/release.test.mjs` compute `nextVersion` (minor plus one) from `package.json`
    instead of the literal `0.2.0`, so `npm test` and `prepublishOnly` pass after
    `release.mjs prepare 0.2.0`. Test-only; no `CHANGELOG.md` entry.
+8. **Release follow-ups after 0.2.0 — plan 008** (merge `5a08cf8`). `package.json` `bin` is
+   `src/bin.mjs`, so `npm pkg fix` and `npm publish` find nothing to rewrite; `verify-tag` on a
+   `package.json` without `version` reports only `Missing version at package.json`;
+   `docs/RELEASING.md` records the by-hand 0.2.0 on 2026-11-01, the expected `E404` of its tag
+   run, and how to choose `X.Y.Z` from `## Unreleased`. No package behaviour change.
