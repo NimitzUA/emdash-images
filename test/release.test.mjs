@@ -9,6 +9,8 @@ import { prepareRelease, readVersions, verifyRelease, verifyReleaseTag } from ".
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packageJson = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8"));
 const currentVersion = packageJson.version;
+const [majorVersion, minorVersion] = currentVersion.split(".");
+const nextVersion = `${majorVersion}.${Number(minorVersion) + 1}.0`;
 const versionFiles = [
 	"package.json",
 	"package-lock.json",
@@ -122,7 +124,7 @@ test("prepareRelease rejects a mismatch before writing files", async (t) => {
 	t.after(() => rm(root, { recursive: true, force: true }));
 	await updateText(root, "src/plugin.mjs", (source) => source.replace(`const version = "${currentVersion}";`, 'const version = "9.9.9";'));
 	await assert.rejects(
-		prepareRelease(root, "0.2.0", { date: "2026-11-01" }),
+		prepareRelease(root, nextVersion, { date: "2026-11-01" }),
 		/Version mismatch at src\/plugin\.mjs/,
 	);
 });
@@ -130,19 +132,19 @@ test("prepareRelease rejects a mismatch before writing files", async (t) => {
 test("prepareRelease rejects an empty or missing Unreleased section", async (t) => {
 	const emptyRoot = await createReleaseRoot(`# Changelog\n\n## Unreleased\n\n## [${currentVersion}] - 2026-10-28\n- Existing entry.\n`);
 	t.after(() => rm(emptyRoot, { recursive: true, force: true }));
-	await assert.rejects(prepareRelease(emptyRoot, "0.2.0", { date: "2026-11-01" }), /has no entries/);
+	await assert.rejects(prepareRelease(emptyRoot, nextVersion, { date: "2026-11-01" }), /has no entries/);
 
 	const missingRoot = await createReleaseRoot(`# Changelog\n\n## [${currentVersion}] - 2026-10-28\n- Existing entry.\n`);
 	t.after(() => rm(missingRoot, { recursive: true, force: true }));
-	await assert.rejects(prepareRelease(missingRoot, "0.2.0", { date: "2026-11-01" }), /missing the ## Unreleased section/);
+	await assert.rejects(prepareRelease(missingRoot, nextVersion, { date: "2026-11-01" }), /missing the ## Unreleased section/);
 });
 
 test("prepareRelease updates every version and moves Unreleased entries under the new dated section", async (t) => {
 	const root = await createReleaseRoot();
 	t.after(() => rm(root, { recursive: true, force: true }));
-	const changedFiles = await prepareRelease(root, "0.2.0", { date: "2026-11-01" });
+	const changedFiles = await prepareRelease(root, nextVersion, { date: "2026-11-01" });
 	assert.deepEqual(changedFiles, ["package.json", "package-lock.json", "src/plugin.mjs", "src/index.d.mts", "CHANGELOG.md"]);
-	assert.deepEqual(Object.values(await readVersions(root)), Array(5).fill("0.2.0"));
+	assert.deepEqual(Object.values(await readVersions(root)), Array(5).fill(nextVersion));
 	for (const file of ["package.json", "package-lock.json"]) {
 		const jsonSource = await readFile(path.join(root, file), "utf8");
 		assert.ok(jsonSource.startsWith("{\n\t\"name\""));
@@ -152,14 +154,14 @@ test("prepareRelease updates every version and moves Unreleased entries under th
 	const originalDescriptor = await readFile(path.join(packageRoot, "src", "index.d.mts"), "utf8");
 	assert.equal(
 		await readFile(path.join(root, "src", "plugin.mjs"), "utf8"),
-		originalPlugin.replace(`const version = "${currentVersion}";`, 'const version = "0.2.0";'),
+		originalPlugin.replace(`const version = "${currentVersion}";`, `const version = "${nextVersion}";`),
 	);
 	assert.equal(
 		await readFile(path.join(root, "src", "index.d.mts"), "utf8"),
-		originalDescriptor.replace(`version: "${currentVersion}";`, 'version: "0.2.0";'),
+		originalDescriptor.replace(`version: "${currentVersion}";`, `version: "${nextVersion}";`),
 	);
 	const changelog = await readFile(path.join(root, "CHANGELOG.md"), "utf8");
-	assert.match(changelog, /^## Unreleased\n\n## \[0\.2\.0\] - 2026-11-01\n\n### Added\n- A fixture entry\./m);
+	assert.ok(changelog.includes(`\n## Unreleased\n\n## [${nextVersion}] - 2026-11-01\n\n### Added\n- A fixture entry.`));
 	assert.ok(changelog.includes(`## [${currentVersion}] - 2026-10-28`));
 	assert.deepEqual(await verifyRelease(root), []);
 });
