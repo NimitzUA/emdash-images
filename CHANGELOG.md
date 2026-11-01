@@ -4,6 +4,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+## [0.2.0] - 2026-11-01
+
 ### Added
 
 - `Picture.astro` component (`@nimitzua/emdash-images/Picture.astro`): AVIF and WebP sources with hash-versioned URLs, `layout`, dark variant, focal point and `pictureAttributes` for EmDash image fields.
