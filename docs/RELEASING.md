@@ -17,6 +17,8 @@ gh run list --workflow ci.yml --limit 1
 
 ## First release, by hand (0.2.0)
 
+0.2.0 was published by hand on 2026-11-01. Later releases follow «Each later release».
+
 npm requires the package to exist before a trusted publisher can be added. Before the first
 publish, create the `@nimitzua` scope on npmjs.com, sign in with `npm login`, and enable two-factor
 authentication for publishing. npm will ask for a two-factor code during the publish.
@@ -72,8 +74,10 @@ authentication for publishing. npm will ask for a two-factor code during the pub
    ```
 
    `npm publish` runs `prepublishOnly`, which runs the test suite and
-   `node scripts/release.mjs verify`. Pushing the tag starts `release.yml`; it finds 0.2.0 already
-   published and skips the publish.
+   `node scripts/release.mjs verify`. Pushing the tag starts `release.yml`. Right after the first
+   publish, the registry may not show the new package yet, so the tag's `Release` run tries to
+   publish and fails with `E404` while no trusted publisher exists. This failure needs no action,
+   and the tag stays.
 
 If the local `npm publish` fails after the tag is created, do not push. Delete the local tag with
 `git tag -d v0.2.0`, remove the unpushed release commit with `git reset --hard HEAD^`, fix the cause
@@ -103,6 +107,8 @@ authentication and disallow tokens.
    `git status --short` should print nothing.
 
 2. Prepare the next version, review the diff, commit with a signature, and verify it:
+
+   Choose `X.Y.Z` from `## Unreleased` in `CHANGELOG.md` using the rule in «Version numbers».
 
    ```sh
    node scripts/release.mjs prepare X.Y.Z
@@ -142,4 +148,4 @@ or with a wrong field), fix the configuration on npmjs.com and re-run the workfl
 
 ## Version numbers
 
-While the package is below 1.0.0, a breaking change or a new feature raises the minor version; a fix raises the patch version. Choose the next number by reviewing `## Unreleased`: use a minor release if it contains a feature or breaking change, and a patch release for fixes alone. The first 1.0.0 release is for when the public API, `Picture` component and CLI have settled. The next release after 0.1.0 is 0.2.0.
+While the package is below 1.0.0, a breaking change or a new feature raises the minor version; a fix raises the patch version. Choose the next number by reviewing `## Unreleased`: use a minor release if it contains a feature or breaking change, and a patch release for fixes alone. The first 1.0.0 release is for when the public API, `Picture` component and CLI have settled. 0.2.0 was the first version published to npm.
