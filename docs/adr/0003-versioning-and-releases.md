@@ -1,6 +1,6 @@
 # 0003 Versioning and releases
 
-**Status:** accepted · **Date:** 2026-10-31
+**Status:** accepted; publishing from CI and the GitHub repository by 0005 · **Date:** 2026-10-31
 
 ## Context
 

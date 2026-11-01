@@ -15,10 +15,12 @@ adopts the package on its own side.
 1. **Small `Picture` follow-ups from plan 005.** The `full-width` render case without the URL
    helper, and the edge cases kept from plan 004; details in plan
    005's Outcome, Follow-ups. None blocks 0.2.0.
-2. **Release 0.2.0.** The `Picture` component is merged (plan 004) and its follow-ups (plan 005). The owner's step: follow
-   `docs/RELEASING.md` (npm scope, login, two-factor, then prepare, commit, tag, publish, push). The `globalThis`-keys entry in `CHANGELOG.md` was
+2. **CI and publishing from GitHub — plan 006.** ADR-0005 (2026-11-01): GitHub
+   `nimitzua/emdash-images` is the source repository; CI on `main` and pull requests; a pushed
+   `vX.Y.Z` tag publishes through npm trusted publishing.
+3. **Release 0.2.0.** Waits for plan 006. The owner's step, by hand as the first publish: follow
+   `docs/RELEASING.md` as plan 006 leaves it. The `globalThis`-keys entry in `CHANGELOG.md` was
    moved to `### Changed` on 2026-11-01 (plan 003's Outcome).
-3. **CI.** Add CI for this repository.
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
