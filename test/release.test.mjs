@@ -102,6 +102,13 @@ test("verifyReleaseTag reports tags outside the vX.Y.Z format", async (t) => {
 	}
 });
 
+test("verifyReleaseTag reports a missing package version without a tag mismatch", async (t) => {
+	const root = await createReleaseRoot();
+	t.after(() => rm(root, { recursive: true, force: true }));
+	await updateJson(root, "package.json", (value) => { delete value.version; });
+	assert.deepEqual(await verifyReleaseTag(root, "v1.2.3"), ["Missing version at package.json"]);
+});
+
 test("verifyReleaseTag includes verifyRelease changelog problems", async (t) => {
 	const root = await createReleaseRoot("# Changelog\n\n## Unreleased\n\n- A pending entry.\n");
 	t.after(() => rm(root, { recursive: true, force: true }));
