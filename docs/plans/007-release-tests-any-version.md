@@ -88,4 +88,27 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `9ae4211` (`--no-ff` of `task/007-release-tests-any-version` onto `de5b562`). Task
+  commit: T1 `2f5b185` (review 1 PASS, no findings). No fix rounds. Gates: `GATES OK`;
+  `RELEASE OK 0.1.0` in the worktree; `git diff main -- src scripts CHANGELOG.md package.json
+  package-lock.json` empty. Lockfile unchanged, so no install on main; `VERIFY OK`. Release
+  tests at merge: `pass 22`, `fail 0`. `version` stays `0.1.0`; nothing tagged, pushed or
+  published.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:**
+  - The first "run plan 007" found the plan uncommitted (`?? docs/plans/007-…`,
+    ` M docs/ROADMAP.md`); the owner committed it as `de5b562` and the run started after that.
+  - The reviewer role does not run the multi-step temporary-copy check (A4) and marked it
+    `NOT RUN`. The architect ran it as a script in an Orca terminal
+    (`.scratch/runs/007-release-tests-any-version/a4-check.sh`): after
+    `release.mjs prepare 0.2.0`, the branch's test file gives `pass 22`, `fail 0`, and `main`'s
+    gives `pass 19`, `fail 3`, which matches the executor's report.
+- **Deviations:** None.
+- **Follow-ups:**
+  - The changelog check in `test/release.test.mjs` now uses `includes` with a leading `\n`
+    instead of a `^…/m` RegExp. It still checks from a line start because the fixture begins
+    with `# Changelog` (review 1 note).
+  - Write an acceptance check that needs a temporary copy or several shell steps as a project
+    script, so the reviewer can run it too.
+  - The owner repeats `docs/RELEASING.md` «First release, by hand (0.2.0)» from a clean `main`.
+- **Proposed rules:** None: the run had no findings.

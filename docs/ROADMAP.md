@@ -18,9 +18,9 @@ adopts the package on its own side.
 2. **First push to GitHub.** The owner's step: `docs/RELEASING.md` «Repository» (point
    `origin` at GitHub, push `main`, check the first CI run). Its result goes into plan 006's
    Outcome; a failure becomes a fix plan.
-3. **Release 0.2.0.** Waits for plan 007: the first attempt (2026-11-01) stopped in
-   `prepublishOnly`, because three release tests hard-code `0.2.0` and fail once the version is
-   0.2.0; nothing was published. Then the owner's step, by hand as the first publish:
+3. **Release 0.2.0.** Unblocked by plan 007 (merge `9ae4211`): the first attempt (2026-11-01)
+   stopped in `prepublishOnly` on release tests that hard-coded `0.2.0`; they now derive the
+   version from `package.json`. The owner's step, by hand as the first publish:
    `docs/RELEASING.md` «First release, by hand (0.2.0)», then «Trusted publisher» right before
    the second release.
    The `globalThis`-keys entry in `CHANGELOG.md` was moved to `### Changed` on 2026-11-01
@@ -76,3 +76,7 @@ adopts the package on its own side.
    `node scripts/release.mjs verify-tag <tag>`; `package.json` `repository`/`homepage`/`bugs`
    and README point at GitHub `nimitzua/emdash-images`; `docs/RELEASING.md` holds the GitHub
    procedure. Nothing pushed yet.
+6. **Release tests for any current version — plan 007** (merge `9ae4211`). The `prepareRelease`
+   tests in `test/release.test.mjs` compute `nextVersion` (minor plus one) from `package.json`
+   instead of the literal `0.2.0`, so `npm test` and `prepublishOnly` pass after
+   `release.mjs prepare 0.2.0`. Test-only; no `CHANGELOG.md` entry.
