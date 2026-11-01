@@ -214,10 +214,11 @@ None.
     tests, `RELEASE OK 0.2.0`) and the PUT failed with `E404` because no trusted publisher
     exists yet. A configuration cause, as `docs/RELEASING.md` «If the CI publish fails»
     describes; the tag stays.
-  - Both the CI publish and, per the same npm version, possibly the by-hand publish logged
-    `npm warn publish "bin[emdash-images]" script name src/bin.mjs was invalid and removed`
-    (`package.json` `bin` is `./src/bin.mjs`, git mode `100755`): the `emdash-images` command
-    may be missing from the published 0.2.0.
+  - The CI publish logged `npm warn publish "bin[emdash-images]" script name src/bin.mjs was
+    invalid and removed` (`package.json` `bin` is `./src/bin.mjs`, git mode `100755`). The
+    by-hand 0.2.0 kept it: `npm view @nimitzua/emdash-images@0.2.0 bin` prints
+    `{ 'emdash-images': 'src/bin.mjs' }`. The CI runner's npm drops it, so the first CI publish
+    would ship without the command.
 - **Decisions:** No executor questions; no plan amendments.
 - **Surprises:**
   - All four executor commits signed; the first run since plan 002 without a mid-run
@@ -232,9 +233,9 @@ None.
     tag run.
 - **Deviations:** None.
 - **Follow-ups:**
-  - Check `npm view @nimitzua/emdash-images@0.2.0 bin` once the registry shows 0.2.0. If `bin`
-    is missing, the CLI is not installed for users: a fix plan for the `bin` entry and a patch
-    release (0.2.1), which is also the first CI publish through the trusted publisher.
+  - Before the first CI publish: find why the runner's npm removes `bin[emdash-images]` (the
+    local npm does not) and fix it, with a check that fails `release.yml` or CI when the packed
+    `package.json` has no `bin`; otherwise the next release ships without the CLI.
   - `docs/RELEASING.md` «First release, by hand»: say that the tag's `Release` run can fail
     with `E404` when the registry does not yet show the new package, and that this needs no
     action; or have `release.yml` treat that case as published.
