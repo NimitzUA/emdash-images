@@ -12,6 +12,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ### Changed
 
+- Package metadata (`repository`, `homepage`, `bugs`) and the README point to the GitHub repository `nimitzua/emdash-images`.
 - Namespace process-wide `globalThis` state by package name and align maintenance usage strings to `emdash-images`.
 - `pictureSources()` reads its widths and `getImage` from `astro:assets` when the caller passes none, so its widths match the image service.
 - Make `warm` use sitemap pages, the root page and one locale-neutral not-found probe instead of hard-coded `/uk/` pages.

@@ -86,6 +86,19 @@ export async function verifyRelease(root) {
 	return problems;
 }
 
+export async function verifyReleaseTag(root, tag) {
+	const problems = await verifyRelease(root);
+	if (typeof tag !== "string" || !/^v\d+\.\d+\.\d+$/.test(tag)) {
+		problems.push(`Tag ${tag} is not vX.Y.Z`);
+	} else {
+		const { packageJson: version } = await readVersions(root);
+		if (tag !== `v${version}`) {
+			problems.push(`Tag ${tag} does not match package.json version ${version}`);
+		}
+	}
+	return problems;
+}
+
 function compareVersions(left, right) {
 	const leftParts = left.split(".").map(BigInt);
 	const rightParts = right.split(".").map(BigInt);
@@ -195,11 +208,23 @@ function usage() {
 		"Usage:",
 		"  node scripts/release.mjs prepare <X.Y.Z>",
 		"  node scripts/release.mjs verify",
+		"  node scripts/release.mjs verify-tag <tag>",
 	].join("\n");
 }
 
 async function main(args) {
 	const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+	if (args.length === 2 && args[0] === "verify-tag") {
+		const problems = await verifyReleaseTag(root, args[1]);
+		if (problems.length > 0) {
+			for (const problem of problems) console.error(problem);
+			process.exitCode = 1;
+			return;
+		}
+		const versions = await readVersions(root);
+		console.log(`RELEASE TAG OK ${versions.packageJson}`);
+		return;
+	}
 	if (args.length === 1 && args[0] === "verify") {
 		const problems = await verifyRelease(root);
 		if (problems.length > 0) {
