@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { prepareRelease, readVersions, verifyRelease } from "../scripts/release.mjs";
+import { prepareRelease, readVersions, verifyRelease, verifyReleaseTag } from "../scripts/release.mjs";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packageJson = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8"));
@@ -74,6 +74,36 @@ test("verifyRelease requires a dated section for the current package version", a
 	const root = await createReleaseRoot("# Changelog\n\n## Unreleased\n\n- A pending entry.\n");
 	t.after(() => rm(root, { recursive: true, force: true }));
 	assert.deepEqual(await verifyRelease(root), [
+		`CHANGELOG.md is missing a section for ${currentVersion} (expected ## [${currentVersion}] - YYYY-MM-DD)`,
+	]);
+});
+
+test("verifyReleaseTag accepts the current package version", async (t) => {
+	const root = await createReleaseRoot();
+	t.after(() => rm(root, { recursive: true, force: true }));
+	assert.deepEqual(await verifyReleaseTag(root, `v${currentVersion}`), []);
+});
+
+test("verifyReleaseTag reports a tag version mismatch", async (t) => {
+	const root = await createReleaseRoot();
+	t.after(() => rm(root, { recursive: true, force: true }));
+	assert.deepEqual(await verifyReleaseTag(root, "v9.9.9"), [
+		`Tag v9.9.9 does not match package.json version ${currentVersion}`,
+	]);
+});
+
+test("verifyReleaseTag reports tags outside the vX.Y.Z format", async (t) => {
+	const root = await createReleaseRoot();
+	t.after(() => rm(root, { recursive: true, force: true }));
+	for (const tag of ["0.1.0", "v0.1", "v0.1.0-rc.1"]) {
+		assert.deepEqual(await verifyReleaseTag(root, tag), [`Tag ${tag} is not vX.Y.Z`]);
+	}
+});
+
+test("verifyReleaseTag includes verifyRelease changelog problems", async (t) => {
+	const root = await createReleaseRoot("# Changelog\n\n## Unreleased\n\n- A pending entry.\n");
+	t.after(() => rm(root, { recursive: true, force: true }));
+	assert.deepEqual(await verifyReleaseTag(root, `v${currentVersion}`), [
 		`CHANGELOG.md is missing a section for ${currentVersion} (expected ## [${currentVersion}] - YYYY-MM-DD)`,
 	]);
 });
