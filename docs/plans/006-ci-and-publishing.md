@@ -196,4 +196,36 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `d1e1f61` (`--no-ff` of `task/006-ci-and-publishing` onto `9f9ae07`). Task
+  commits: T1 `2621568` (review 1 PASS), T2 `295cc20` (review 1 PASS), T3 `c5f1cbb` (review 1
+  PASS), T4 `b5abdf1` (review 1 PASS). No fix rounds. Gates: `GATES OK`; `RELEASE OK 0.1.0` in
+  the worktree; `git diff main -- src` empty; `npm pack --dry-run --json` lists 28 files, none
+  under `.github/` or `scripts/`. Lockfile unchanged, so no install on main; `VERIFY OK`. Tests
+  at merge: 132 `node --test` plus the vitest render cases. `version` stays `0.1.0`; nothing
+  tagged, pushed or published. The first real CI run (the owner's first push of `main` to
+  GitHub) has not happened yet; its result is still to be recorded here.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:**
+  - All four executor commits signed; the first run since plan 002 without a mid-run
+    1Password failure.
+  - The Codex executor policy refuses `gh run … --help`, `git push -h` and `git tag -h`
+    ("No remote operations from executors") although `--help` calls nothing remote; T4 used
+    `git help push` / `git help tag`. The reviewer sandbox also denies `~/.config/gh`, so no
+    role could run `gh … --help`; T4's review checked the `gh run list -w/--workflow -L/--limit`,
+    `gh run watch` and `gh run rerun [<run-id>]` syntax against the cli.github.com manual.
+  - The reviewer hook refuses `sort`, so the release workflow's npm version gate
+    (`printf … | sort -V -C`) was checked by reasoning only; its first execution is the first
+    tag run.
+- **Deviations:** None.
+- **Follow-ups:**
+  - Record the first CI run on GitHub (`gh run list --workflow ci.yml --limit 1`) here; a
+    failure becomes a fix plan.
+  - The `release.yml` npm version gate and registry check run for the first time on the 0.2.0
+    tag push (expected: publish skipped, version already on npm).
+  - `docs/RELEASING.md` «Each later release» no longer says to choose the version from
+    `## Unreleased` and the version rule; «Version numbers» still covers it (nit).
+  - `verify-tag` with a `package.json` lacking `version` prints `... does not match package.json
+    version null` next to `Missing version at package.json`; no crash, wording could be smoother.
+  - An npm prerelease version string would sort oddly under `sort -V`; Node 26 ships stable npm,
+    no action.
+- **Proposed rules:** None: the run had no findings.

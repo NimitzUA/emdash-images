@@ -15,12 +15,13 @@ adopts the package on its own side.
 1. **Small `Picture` follow-ups from plan 005.** The `full-width` render case without the URL
    helper, and the edge cases kept from plan 004; details in plan
    005's Outcome, Follow-ups. None blocks 0.2.0.
-2. **CI and publishing from GitHub — plan 006.** ADR-0005 (2026-11-01): GitHub
-   `nimitzua/emdash-images` is the source repository; CI on `main` and pull requests; a pushed
-   `vX.Y.Z` tag publishes through npm trusted publishing.
-3. **Release 0.2.0.** Waits for plan 006. The owner's step, by hand as the first publish: follow
-   `docs/RELEASING.md` as plan 006 leaves it. The `globalThis`-keys entry in `CHANGELOG.md` was
-   moved to `### Changed` on 2026-11-01 (plan 003's Outcome).
+2. **First push to GitHub.** The owner's step: `docs/RELEASING.md` «Repository» (point
+   `origin` at GitHub, push `main`, check the first CI run). Its result goes into plan 006's
+   Outcome; a failure becomes a fix plan.
+3. **Release 0.2.0.** The owner's step, by hand as the first publish: `docs/RELEASING.md`
+   «First release, by hand (0.2.0)», then «Trusted publisher» right before the second release.
+   The `globalThis`-keys entry in `CHANGELOG.md` was moved to `### Changed` on 2026-11-01
+   (plan 003's Outcome).
 4. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
@@ -65,3 +66,10 @@ adopts the package on its own side.
    404 (`### Fixed`); an empty `src` counts as unset; the layout name is `"full-width"`; render
    tests parse every rendered URL with the package's `parseURL`; `vitest --reporter=verbose`;
    layout `none` keeps ignoring `imageConfig.objectFit` / `objectPosition`, now pinned by a test.
+5. **CI and publishing from GitHub — plan 006** (merge `d1e1f61`). ADR-0005 in place:
+   `.github/workflows/ci.yml` (push to `main`, pull requests: `npm ci`, `npm test`, release
+   verify) and `release.yml` (a pushed `v*` tag: `verify-tag`, npm >= 11.5.1, skip when the
+   version is already on npm, else `npm publish` through trusted publishing, no tokens);
+   `node scripts/release.mjs verify-tag <tag>`; `package.json` `repository`/`homepage`/`bugs`
+   and README point at GitHub `nimitzua/emdash-images`; `docs/RELEASING.md` holds the GitHub
+   procedure. Nothing pushed yet.
