@@ -104,4 +104,22 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `4375b4d` (`--no-ff` of `task/010-picture-sources-null-options` onto `26c136d`).
+  Task commit: T1 `0bce0dd` (review 1 PASS, no findings). No fix rounds. Gates: `GATES OK`;
+  `RELEASE OK 0.2.0` from the worktree's `scripts/release.mjs`;
+  `git diff main -- src/sources.d.mts src/index.d.mts src/picture.mjs src/Picture.astro package.json package-lock.json`
+  empty. Lockfile unchanged, so no install on main; `VERIFY OK`. Tests: vitest `11 passed`,
+  including the two new `astro-tests/sources.render.mjs` tests; `CHECK OK`. `version` stays
+  `0.2.0`; nothing tagged, pushed or published.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:** None. On the old code the new tests fail as the plan's facts predicted: a `null`
+  `getImage` threw `pictureSources requires a getImage function`, a `null` `imageConfig` gave
+  the default widths `[640, 1080, 1600]` instead of `[640, 1200]` (executor's run with the change
+  undone; the reviewer confirmed it from the diff).
+- **Deviations:** None.
+- **Follow-ups:**
+  - Roadmap item 1 is closed: the `null` option is fixed here; `picture` `{}` and the repeated
+    `astro:assets` import under `node --test` are won't fix (owner decision, 2026-11-02).
+  - The `### Fixed` entries under `## Unreleased` (plans 009 and 010) make the next release a
+    patch at least.
+- **Proposed rules:** None: the run had no findings.

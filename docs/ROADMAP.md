@@ -12,19 +12,15 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Small `Picture` follow-ups from plan 005.** The edge cases kept from plan 004 (`getImage:
-   null` with an `imageConfig`, `picture` `{}`, the repeated `astro:assets` import under
-   `node --test`); details in plan 005's Outcome, Follow-ups. The `full-width` URL check is done
-   in plan 009.
-2. **Trusted publisher.** The owner's step right before the second release:
+1. **Trusted publisher.** The owner's step right before the second release:
    `docs/RELEASING.md` «Trusted publisher»; the configuration expires unless a publish succeeds
    within 2 days.
-3. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
+2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-4. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
+3. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
    Text image block component on the same code as `Picture`, and the LQIP placeholder.
 
 ## Out of scope
@@ -84,3 +80,8 @@ adopts the package on its own side.
    `### Fixed` under `## Unreleased`; tests for an invalid `--public-origin` and the
    `full-width` render URLs. Unreleased. `README.md` «Options» names `warm`'s fallback and
    `cleanup`'s error when no cache directory is set (architect, 2026-11-02).
+10. **Small `Picture` follow-ups — plan 010** (merge `4375b4d`). `pictureSources()` treats a
+    `null` `getImage` or `imageConfig` as omitted and reads it from `astro:assets` (`### Fixed`
+    under `## Unreleased`), with vitest tests for both. The other plan 004 edge cases (`picture`
+    `{}`, the repeated `astro:assets` import under `node --test`) are won't fix (owner,
+    2026-11-02). Unreleased.
