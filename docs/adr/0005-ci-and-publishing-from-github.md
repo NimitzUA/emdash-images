@@ -1,6 +1,6 @@
 # 0005 CI and publishing from GitHub
 
-**Status:** accepted · **Date:** 2026-11-01
+**Status:** accepted; its `npm publish` step is superseded by 0007 · **Date:** 2026-11-01
 
 ## Context
 

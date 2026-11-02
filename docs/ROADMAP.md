@@ -12,9 +12,11 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Trusted publisher.** The owner's step right before the second release:
-   `docs/RELEASING.md` «Trusted publisher»; the configuration expires unless a publish succeeds
-   within 2 days.
+1. **Staged publishing, then release 0.3.0.** ADR-0007 (owner, 2026-11-02): CI runs
+   `npm stage publish` and the owner approves every version with two-factor authentication;
+   plan 012 changes `release.yml` and `docs/RELEASING.md`. Then the owner adds the trusted
+   publisher with "allow npm publish" unchecked and releases 0.3.0; the configuration expires
+   unless a publish succeeds within 2 days.
 2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
