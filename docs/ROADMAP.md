@@ -19,8 +19,15 @@ adopts the package on its own side.
    (`src/media-database.mjs`), so only the CLI maintenance commands are tied to Postgres. That
    ADR also answers ADR-0004's open question (a content-hash lookup without the site's help).
 2. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
-   staged tries to stage it again is still unchecked; check it the first time a re-run is
-   needed, before relying on it.
+   staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
+   the `registry` step of `release.yml` finds the published version and skips `npm ci` and
+   `npm stage publish`. Check it deliberately at the next release (owner decision,
+   2026-11-02): after the `Release` run stages the version and before approving it, run
+   `gh run rerun <run-id>` and `gh run watch <run-id> --exit-status`, then
+   `npm stage list @nimitzua/emdash-images`. Record whether the re-run failed, staged nothing
+   new, or added a second stage; reject a duplicate stage with `npm stage reject <stage-id>`
+   and approve the other. Then write the result into ADR-0007 and, if it changes the
+   procedure, `docs/RELEASING.md` «If the CI publish fails».
 
 ## Out of scope
 
