@@ -47,6 +47,7 @@
 			"import": "./src/plugin.mjs"
 		},
 		"./Picture.astro": "./src/Picture.astro",
+		"./PortableTextImage.astro": "./src/PortableTextImage.astro",
 		"./warmup": {
 			"types": "./src/warmup.d.mts",
 			"import": "./src/warmup.mjs"

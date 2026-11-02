@@ -1,0 +1,77 @@
+---
+import { getImage, imageConfig } from "astro:assets";
+import { portableTextImageModel } from "./portable-text-image.mjs";
+
+interface ImageAsset {
+	_ref?: string;
+	id?: string;
+	url?: string;
+	src?: string;
+	provider?: string;
+	meta?: Record<string, unknown>;
+	alt?: string;
+	width?: number;
+	height?: number;
+}
+
+interface PortableTextImageNode {
+	asset?: ImageAsset | null;
+	alt?: string;
+	width?: number;
+	height?: number;
+	blurhash?: string;
+	dominantColor?: string;
+	displayWidth?: number;
+	displayHeight?: number;
+	alignment?: string;
+	caption?: string;
+	title?: string;
+	link?: string | { href?: string; blank?: boolean };
+}
+
+interface Props {
+	node?: PortableTextImageNode | null;
+	contentHash?: string;
+	placeholder?: boolean;
+	index?: number;
+	isInline?: boolean;
+}
+
+const model = await portableTextImageModel(Astro.props, {
+	getImage,
+	imageConfig,
+	locals: Astro.locals,
+	url: Astro.url,
+});
+---
+
+{model && (
+	<figure class={model.figureClass}>
+		{model.link ? (
+			<a {...model.link}>
+				{model.variants.map(({ picture, sources, img }) =>
+					picture ? (
+						<picture {...picture}>
+							{sources.map((source) => <source {...source} />)}
+							<img {...img} />
+						</picture>
+					) : (
+						<img {...img} />
+					),
+				)}
+			</a>
+		) : (
+			model.variants.map(({ picture, sources, img }) =>
+				picture ? (
+					<picture {...picture}>
+						{sources.map((source) => <source {...source} />)}
+						<img {...img} />
+					</picture>
+				) : (
+					<img {...img} />
+				),
+			)
+		)}
+		{model.caption && <figcaption>{model.caption}</figcaption>}
+	</figure>
+)}
