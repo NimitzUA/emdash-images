@@ -22,9 +22,6 @@ adopts the package on its own side.
    guard too reads EmDash's `media` table directly.
 3. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
    «Scope».
-4. **Docs follow-ups from plan 011.** README placeholder row names `rgba()`; «Portable Text
-   images» names `PortableTextImage`'s `placeholder` prop and that a `#` link gets no `target`;
-   the wrapper example guards a missing `Astro.locals.imageHashes` (plan 011 «Outcome»).
 
 ## Out of scope
 
@@ -95,3 +92,5 @@ adopts the package on its own side.
     renders EmDash's Portable Text `image` block over `pictureModel` (alignment classes, link
     through `emdash`'s `sanitizeHref`, caption, display size, layout `constrained`, no CSS);
     README, SKILL.md and `### Added` in `CHANGELOG.md`. Unreleased; the next release is 0.3.0.
+    The Outcome's README follow-ups (`rgba()`, the `placeholder` prop and `#` links in
+    «Portable Text images», a guarded wrapper example) fixed by the architect on 2026-11-02.

@@ -159,7 +159,7 @@ import Picture from "@nimitzua/emdash-images/Picture.astro";
 | `position` | Sets CSS `object-position` through Astro's layout attributes when `layout` is not `"none"`; generated URLs never include `position`. |
 | `priority` | Load eagerly and request high fetch priority. |
 | `pictureAttributes` | Attributes to apply to the wrapping `<picture>`. |
-| `placeholder` | LQIP placeholder from `blurhash`, else a hex or `rgb()` `dominantColor`, as an inline background; defaults to `true`; pass `false` for a strict Content Security Policy. |
+| `placeholder` | LQIP placeholder from `blurhash`, else a hex, `rgb()` or `rgba()` `dominantColor` (other values are ignored), as an inline background; defaults to `true`; pass `false` for a strict Content Security Policy. |
 
 Standard `<img>` attributes such as `sizes`, `loading`, `decoding`, `class`, `style`, and `id` pass through to the `<img>`. The component does not query for `content_hash`: fetch hashes for the page's media IDs in one site-owned query, then pass each matching value as `contentHash` (and `darkContentHash` for a dark variant). Without a valid hash, generated URLs are unversioned.
 
@@ -192,13 +192,14 @@ import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
 ```astro
 ---
 import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
-const hashes = Astro.locals.imageHashes;
+const ref = Astro.props.node?.asset?._ref;
+const contentHash = ref ? Astro.locals.imageHashes?.get(ref) : undefined;
 ---
 
-<PortableTextImage {...Astro.props} contentHash={hashes.get(Astro.props.node.asset._ref)} />
+<PortableTextImage {...Astro.props} contentHash={contentHash} />
 ```
 
-Without a valid `contentHash`, the generated URLs are unversioned. The component renders a `<figure class="emdash-image emdash-image--align-<alignment>">` when an alignment is set, an optional link whose `href` is passed through EmDash's `sanitizeHref`, the image, and an optional `<figcaption>`. `displayWidth` and `displayHeight` set the image's display dimensions, and the image uses the `constrained` layout.
+Without a valid `contentHash`, the generated URLs are unversioned. The component renders a `<figure class="emdash-image emdash-image--align-<alignment>">` when an alignment is set, an optional link whose `href` is passed through EmDash's `sanitizeHref`, the image, and an optional `<figcaption>`. A link with `blank: true` opens in a new tab with `rel="noopener noreferrer"`, except a same-page `#` link, which gets no `target`. `displayWidth` and `displayHeight` set the image's display dimensions, and the image uses the `constrained` layout. The `placeholder` prop works as on `Picture`: default `true`, `false` for a strict Content Security Policy.
 
 The component ships no CSS. A site replacing EmDash's image block must style the alignment classes and caption itself. This global stylesheet copies EmDash's rules from `node_modules/emdash/src/components/Image.astro`:
 
