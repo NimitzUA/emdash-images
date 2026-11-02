@@ -35,6 +35,14 @@ Facts from the installed dependencies (`emdash` 1.4.0, `astro-portabletext` 0.11
   (MIT, 0.1.2, a dependency of `emdash`), imported only when a `blurhash` is present; without
   one it uses `background-color: <dominantColor>`. A `placeholder` prop (default `true`) turns
   it off for a strict Content Security Policy, since the placeholder is an inline style.
+- `blurhashToImageCssString` returns `background: url("data:image/bmp;base64,…") cover`
+  (`@unpic/placeholder` `dist/index.mjs:154-160`). In the `background` shorthand a size must
+  follow a position and a `/`, so browsers drop that declaration as invalid.
+  `blurhashToImageCssObject` (lines 148-153) returns `backgroundImage` and
+  `backgroundSize: "cover"` as separate, valid values. An invalid blurhash makes the decoder
+  throw.
+- EmDash computes `dominantColor` as `rgb(R,G,B)` (`src/media/placeholder.ts:64-86`), but the
+  value is stored content and reaches the page as an inline style.
 - `Picture` resolves URLs, sources, layout attributes, the dark variant and the focal point in
   `src/picture.mjs` (`pictureModel`); the `.astro` file is a thin template over it.
 
@@ -71,9 +79,12 @@ and this step covers the `image` block only.
 - **Unstyled.** The component ships no CSS. The site styles the alignment classes and the
   caption; `README.md` gives an example stylesheet with EmDash's rules.
 - **Placeholder.** `Picture` and `PortableTextImage` take a `placeholder` prop, default `true`.
-  With a `blurhash`, the `<img>` gets the inline style from `@unpic/placeholder`'s
-  `blurhashToImageCssString`, imported only when a blurhash is present; otherwise, with a
-  `dominantColor`, `background-color: <dominantColor>`. Each `Picture` variant uses its own
+  With a `blurhash`, the `<img>` gets `background-image` and `background-size: cover` from
+  `@unpic/placeholder`'s `blurhashToImageCssObject`, imported only when a blurhash is present
+  (not `blurhashToImageCssString`, whose shorthand is invalid); a blurhash the decoder rejects
+  gives no blurhash placeholder. Otherwise, with a `dominantColor` that is a plain hex or
+  `rgb()`/`rgba()` colour, `background-color: <dominantColor>`; any other value is ignored, so
+  stored content cannot add other CSS to the inline style. Each `Picture` variant uses its own
   media value's fields, so the dark variant gets its own placeholder. The placeholder style is
   merged with the focal point and the site's `style`. `placeholder={false}` renders no
   placeholder style.
