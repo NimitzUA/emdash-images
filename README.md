@@ -1,8 +1,8 @@
 # @nimitzua/emdash-images
 
-Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, an optional `Picture.astro` component for EmDash image fields, a `PortableTextImage.astro` component for Portable Text image blocks, cache warm-up, and media backfill and cleanup helpers.
+Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, an optional `Picture.astro` component for EmDash image fields, a `PortableTextImage.astro` component for Portable Text image blocks, a `PortableTextGallery.astro` component for Portable Text gallery blocks, cache warm-up, and media backfill and cleanup helpers.
 
-The package ships two optional components: `Picture.astro` for EmDash image fields and `PortableTextImage.astro` for Portable Text image blocks. Each site still owns art direction, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
+The package ships three optional components: `Picture.astro` for EmDash image fields, `PortableTextImage.astro` for Portable Text image blocks, and `PortableTextGallery.astro` for Portable Text gallery blocks. Each site still owns art direction, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
 
 ## Supported versions
 
@@ -173,17 +173,18 @@ Use `pictureSources()` when site markup needs art direction or output beyond thi
 
 ## Portable Text images
 
-Use `PortableTextImage.astro` to replace EmDash's Portable Text `image` block while keeping the other default block renderers:
+Use `PortableTextImage.astro` and `PortableTextGallery.astro` to replace EmDash's Portable Text `image` and `gallery` blocks while keeping the other default block renderers:
 
 ```astro
 ---
 import { PortableText } from "emdash/ui";
 import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
+import PortableTextGallery from "@nimitzua/emdash-images/PortableTextGallery.astro";
 ---
 
 <PortableText
 	value={entry.data.body}
-	components={{ type: { image: PortableTextImage } }}
+	components={{ type: { image: PortableTextImage, gallery: PortableTextGallery } }}
 />
 ```
 
@@ -200,6 +201,50 @@ const contentHash = ref ? Astro.locals.imageHashes?.get(ref) : undefined;
 ```
 
 Without a valid `contentHash`, the generated URLs are unversioned. The component renders a `<figure class="emdash-image emdash-image--align-<alignment>">` when an alignment is set, an optional link whose `href` is passed through EmDash's `sanitizeHref`, the image, and an optional `<figcaption>`. A link with `blank: true` opens in a new tab with `rel="noopener noreferrer"`, except a same-page `#` link, which gets no `target`. `displayWidth` and `displayHeight` set the image's display dimensions, and the image uses the `constrained` layout. The `placeholder` prop works as on `Picture`: default `true`, `false` for a strict Content Security Policy.
+
+`PortableTextGallery` accepts `contentHashes` as a `Map` or plain object from media ID to `content_hash`. A plain object is read by own keys only. Pass the page-level hash map through a site wrapper as `contentHashes`, for example when site middleware or page data setup exposes it as `Astro.locals.imageHashes`:
+
+```astro
+---
+import PortableTextGallery from "@nimitzua/emdash-images/PortableTextGallery.astro";
+const contentHashes = Astro.locals.imageHashes;
+---
+
+<PortableTextGallery {...Astro.props} contentHashes={contentHashes} />
+```
+
+The gallery uses `node.columns` when it is a positive integer and defaults to `3` otherwise. Its `sizes` default is `(max-width: 640px) calc((100vw - 1rem) / 2), calc((100vw - 2rem) / 3)` with three columns; the desktop slot adjusts to the column count, and one column uses `100vw`. Pass the `sizes` prop to override that value. The `placeholder` prop works as on `Picture`: default `true`, `false` for a strict Content Security Policy; the placeholder background is applied to each rendered `<img>`.
+
+The component renders a `<div class="emdash-gallery" style="--columns: …">` containing one `<figure class="emdash-gallery-item">` per rendered image and a `<figcaption>` when the image has a caption. It ships no CSS. Add these rules to the site's global stylesheet; they copy EmDash's gallery rules from `node_modules/emdash/src/components/Gallery.astro`:
+
+```css
+.emdash-gallery {
+	display: grid;
+	grid-template-columns: repeat(var(--columns, 3), 1fr);
+	gap: 1rem;
+	margin: 1.5rem 0;
+}
+.emdash-gallery-item {
+	margin: 0;
+}
+.emdash-gallery-item img {
+	width: 100%;
+	height: auto;
+	object-fit: cover;
+	aspect-ratio: 1;
+}
+.emdash-gallery-item figcaption {
+	font-size: 0.75rem;
+	color: var(--emdash-caption-color, var(--color-muted, #666));
+	margin-top: 0.25rem;
+	text-align: center;
+}
+@media (max-width: 640px) {
+	.emdash-gallery {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+```
 
 The component ships no CSS. A site replacing EmDash's image block must style the alignment classes and caption itself. This global stylesheet copies EmDash's rules from `node_modules/emdash/src/components/Image.astro`:
 
@@ -249,7 +294,7 @@ The component ships no CSS. A site replacing EmDash's image block must style the
 }
 ```
 
-This override only replaces the `image` block; `gallery` and `cover` continue to use EmDash's components.
+`PortableTextImage` replaces the `image` block, and `PortableTextGallery` can replace the `gallery` block. The `cover` block still uses EmDash's component because its image has no dimensions to transform.
 
 ## Command line
 
@@ -294,4 +339,4 @@ The runtime image needs the installed package in its `node_modules` tree. Set `I
 
 ## Package exports
 
-The root export contains descriptors and helpers. `./Picture.astro` renders EmDash image fields, and `./PortableTextImage.astro` renders Portable Text image blocks. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers.
+The root export contains descriptors and helpers. `./Picture.astro` renders EmDash image fields, `./PortableTextImage.astro` renders Portable Text image blocks, and `./PortableTextGallery.astro` renders Portable Text gallery blocks. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers.

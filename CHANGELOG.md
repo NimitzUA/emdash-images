@@ -4,6 +4,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+### Added
+
+- `PortableTextGallery.astro` component (`@nimitzua/emdash-images/PortableTextGallery.astro`) for EmDash's Portable Text `gallery` block: AVIF and WebP sources per image, configured widths, `contentHashes`, `columns`, `sizes`, captions and placeholders, with no CSS.
+
 ## [0.3.1] - 2026-11-02
 
 ### Fixed
