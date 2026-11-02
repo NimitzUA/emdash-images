@@ -20,8 +20,11 @@ adopts the package on its own side.
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-3. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
-   Text image block component on the same code as `Picture`, and the LQIP placeholder.
+3. **Portable Text images and the placeholder.** ADR-0006 (accepted 2026-11-02):
+   `PortableTextImage.astro` for the `image` block on the same code as `Picture`, and the LQIP
+   placeholder in both components through `@unpic/placeholder`.
+4. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
+   «Scope».
 
 ## Out of scope
 
