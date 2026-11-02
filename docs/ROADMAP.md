@@ -20,11 +20,11 @@ adopts the package on its own side.
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-3. **Portable Text images and the placeholder.** ADR-0006 (accepted 2026-11-02):
-   `PortableTextImage.astro` for the `image` block on the same code as `Picture`, and the LQIP
-   placeholder in both components through `@unpic/placeholder`.
-4. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
+3. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
    «Scope».
+4. **Docs follow-ups from plan 011.** README placeholder row names `rgba()`; «Portable Text
+   images» names `PortableTextImage`'s `placeholder` prop and that a `#` link gets no `target`;
+   the wrapper example guards a missing `Astro.locals.imageHashes` (plan 011 «Outcome»).
 
 ## Out of scope
 
@@ -88,3 +88,10 @@ adopts the package on its own side.
     under `## Unreleased`), with vitest tests for both. The other plan 004 edge cases (`picture`
     `{}`, the repeated `astro:assets` import under `node --test`) are won't fix (owner,
     2026-11-02). Unreleased.
+11. **Portable Text image and placeholder — plan 011** (merge `7fc9edf`). ADR-0006 in place:
+    `Picture` renders an LQIP placeholder from `blurhash` (through `@unpic/placeholder`, a new
+    dependency) or a strictly matched hex/`rgb()`/`rgba()` `dominantColor`, on by default,
+    `placeholder={false}` for a strict CSP; `@nimitzua/emdash-images/PortableTextImage.astro`
+    renders EmDash's Portable Text `image` block over `pictureModel` (alignment classes, link
+    through `emdash`'s `sanitizeHref`, caption, display size, layout `constrained`, no CSS);
+    README, SKILL.md and `### Added` in `CHANGELOG.md`. Unreleased; the next release is 0.3.0.

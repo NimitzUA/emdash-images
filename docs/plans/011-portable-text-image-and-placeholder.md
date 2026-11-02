@@ -288,4 +288,35 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `7fc9edf` (`--no-ff` of `task/011-portable-text-image-and-placeholder` onto
+  `ee993bb`). Task commits: T1 `ac229eb`, T2 `8b7c9fa`, T3 `a0da5c5`, each with review 1 PASS
+  and no findings. No fix rounds. Gates: `GATES OK`;
+  `git diff main -- src/sources.mjs src/service.mjs src/guard.mjs src/index.mjs src/index.d.mts src/sources.d.mts`
+  empty; `RELEASE OK 0.2.0` from the worktree (T3 executor and T3 review 1). The lockfile
+  changed, so main was installed: `INSTALL OK`; then `VERIFY OK`. Tests: `test/picture.test.mjs`
+  43 pass, vitest `14 passed`, `CHECK OK`. `version` stays `0.2.0`; nothing tagged, pushed or
+  published.
+- **Decisions:** T1 asked "dependencies changed, run install"; the run ran `install-main.sh` in
+  the worktree (`INSTALL OK`), as the plan's Preconditions foresaw. No other questions; no plan
+  amendments.
+- **Surprises:** The plan gate `node scripts/release.mjs verify`, run in an Orca terminal with
+  `exec`, exited 0 but the terminal kept no output, so the `RELEASE OK 0.2.0` evidence comes
+  from T3's executor and reviewer at the same HEAD; `verify-main.sh` reran release checks on main.
+  T1: with `src/picture.mjs` undone, 7 new placeholder tests fail; the threat-table negatives
+  also pass on the base code (it never read `dominantColor`), so the positive tests and the
+  regexes give that table its meaning.
+- **Deviations:** None.
+- **Follow-ups:**
+  - `Picture` now normalizes a string site `style` (trimmed, one trailing `;`, empty gives no
+    `style`) and drops a non-string, non-object `style`; same CSS meaning (T1 review note).
+  - `PortableTextImage` with `displayWidth` but no original height uses the original width in
+    `sizes` where EmDash emits none; only media without a height, which `pictureModel` cannot
+    optimize anyway (T2 review note). The `displayWidth` render test does not assert `sizes`;
+    the model test does.
+  - README: the placeholder row says "hex or `rgb()`" though `rgba()` is accepted; «Portable
+    Text images» does not name `PortableTextImage`'s `placeholder` prop or that a `#` link gets
+    no `target`; the ADR-0006 wrapper example has no guard for a missing
+    `Astro.locals.imageHashes` (T3 review notes). A small docs plan can cover them.
+  - `## Unreleased` now holds `### Added` (plan 011) and `### Fixed` (plans 009, 010): the next
+    release is a minor, 0.3.0 (ADR-0003).
+- **Proposed rules:** None: the run had no findings.
