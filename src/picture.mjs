@@ -1,8 +1,9 @@
 import { pictureSources } from "./sources.mjs";
+import { placeholderStyle } from "./placeholder.mjs";
 
 const EXCLUDED_ATTRIBUTES = new Set([
 	"image", "darkVariant", "src", "width", "height", "contentHash", "darkContentHash",
-	"srcsetWidths", "pictureAttributes", "class", "style", "id",
+	"srcsetWidths", "pictureAttributes", "class", "style", "id", "placeholder",
 ]);
 const FALLBACK_EXCLUDED_ATTRIBUTES = new Set(["layout", "fit", "position", "priority"]);
 
@@ -82,7 +83,7 @@ async function renderVariant(variant, shared) {
 				alt,
 				id,
 				className,
-				style: styleWithFocalPoint(media, style),
+				style: await variantStyle(media, style, props.placeholder),
 				props,
 			}),
 		};
@@ -109,7 +110,7 @@ async function renderVariant(variant, shared) {
 			alt,
 			id,
 			class: className,
-			style: styleWithFocalPoint(media, style),
+			style: await variantStyle(media, style, props.placeholder),
 		},
 	};
 }
@@ -188,16 +189,29 @@ function fallbackAttributes({
 	};
 }
 
-function styleWithFocalPoint(media, style) {
+async function variantStyle(media, style, placeholderEnabled) {
+	const placeholder = placeholderEnabled === false ? undefined : await placeholderStyle(media);
 	const position = focalPointToObjectPosition(media?.focalX, media?.focalY);
-	if (position === undefined) return style;
-
-	const focalStyle = `object-position: ${position};`;
-	if (typeof style === "string") return style ? `${focalStyle} ${style}` : focalStyle;
 	if (style && typeof style === "object") {
-		return { "object-position": position, ...style };
+		return {
+			...placeholder,
+			...(position === undefined ? {} : { "object-position": position }),
+			...style,
+		};
 	}
-	return focalStyle;
+
+	const siteStyle = typeof style === "string" && style.trim() ? styleDeclaration(style) : undefined;
+	const declarations = [
+		...Object.entries(placeholder ?? {}).map(([name, value]) => `${name}: ${value};`),
+		...(position === undefined ? [] : [`object-position: ${position};`]),
+		...(siteStyle ? [siteStyle] : []),
+	];
+	return declarations.length > 0 ? declarations.join(" ") : undefined;
+}
+
+function styleDeclaration(style) {
+	const declaration = style.trim().replace(/;+$/, "");
+	return declaration ? `${declaration};` : "";
 }
 
 function focalPointToObjectPosition(focalX, focalY) {

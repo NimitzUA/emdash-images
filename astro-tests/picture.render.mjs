@@ -224,3 +224,20 @@ test("focal point sets object-position on the img", async () => {
 	const img = html.match(/<img\b[^>]*>/)?.[0];
 	assert.match(img, /style="object-position: 50% 25%;?"/);
 });
+
+test("blurhash placeholder renders a background image and cover size", async () => {
+	const html = await render({
+		image: {
+			id: "photo-id",
+			src: "/photo.jpg",
+			width: 1600,
+			height: 1000,
+			blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+		},
+	});
+
+	const img = html.match(/<img\b[^>]*>/)?.[0];
+	assert.ok(img);
+	assert.match(attribute(img, "style"), /background-image: url\(/);
+	assert.match(attribute(img, "style"), /background-size: cover/);
+});

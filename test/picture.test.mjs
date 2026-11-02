@@ -323,3 +323,109 @@ test("a dark variant without a URL is omitted and an unresolved primary renders 
 	const unresolved = await render({ image: { id: "", src: "" } });
 	assert.deepEqual(unresolved.result, { variants: [] });
 });
+
+test("blurhash placeholders render from the media field and metadata", async () => {
+	const blurhash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+	for (const imageValue of [
+		{ ...image, blurhash },
+		{ ...image, meta: { blurhash } },
+	]) {
+		const { result } = await render({ image: imageValue });
+		assert.match(
+			result.variants[0].img.style,
+			/^background-image: url\("data:image\/bmp;base64,[A-Za-z0-9+/=]+"\); background-size: cover;$/,
+		);
+	}
+});
+
+test("dominant colours accept rgb and hex values", async () => {
+	const rgb = await render({ image: { ...image, dominantColor: "rgb(10,20,30)" } });
+	assert.equal(rgb.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+
+	const hex = await render({ image: { ...image, dominantColor: "#a1b2c3" } });
+	assert.equal(hex.result.variants[0].img.style, "background-color: #a1b2c3;");
+
+	const metadata = await render({ image: { ...image, meta: { dominantColor: "rgb(10,20,30)" } } });
+	assert.equal(metadata.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+});
+
+test("placeholder, focal point, and site style combine in declaration order", async () => {
+	const media = { ...image, dominantColor: "rgb(10,20,30)", focalX: 0.5, focalY: 0.25 };
+	const stringStyle = await render({ image: media, style: "color: red;" });
+	assert.equal(
+		stringStyle.result.variants[0].img.style,
+		"background-color: rgb(10,20,30); object-position: 50% 25%; color: red;",
+	);
+
+	const objectStyle = await render({ image: media, style: { color: "red" } });
+	assert.deepEqual(objectStyle.result.variants[0].img.style, {
+		"background-color": "rgb(10,20,30)",
+		"object-position": "50% 25%",
+		color: "red",
+	});
+});
+
+test("placeholder false disables placeholders and excludes the prop from image attributes", async () => {
+	for (const unchanged of [false, true]) {
+		const { calls, result } = await render(
+			{ placeholder: false, image: { ...image, dominantColor: "rgb(10,20,30)" } },
+			{ unchanged },
+		);
+		assert.equal(result.variants[0].img.style, undefined);
+		assert.equal(Object.hasOwn(result.variants[0].img, "placeholder"), false);
+		assert.ok(calls.length > 0);
+		assert.ok(calls.every((call) => !Object.hasOwn(call, "placeholder")));
+	}
+});
+
+test("dark variants use their own dominant colours", async () => {
+	const { result } = await render({
+		image: {
+			...image,
+			dominantColor: "rgb(1,2,3)",
+			darkVariant: { src: "/media/dark.jpg", dominantColor: "rgb(4,5,6)" },
+		},
+	});
+	assert.deepEqual(
+		result.variants.map(({ img }) => img.style),
+		["background-color: rgb(1,2,3);", "background-color: rgb(4,5,6);"],
+	);
+});
+
+test("fallback img receives the dominant colour placeholder", async () => {
+	const { result } = await render(
+		{ image: { ...image, dominantColor: "rgb(10,20,30)" } },
+		{ unchanged: true },
+	);
+	assert.equal(result.variants[0].img.style, "background-color: rgb(10,20,30);");
+});
+
+test("stored dominant colours cannot add CSS declarations", async (t) => {
+	for (const value of [
+		"red; background-image: url(https://tracker.example/x)",
+		"rgb(1,2,3); color: red",
+		"url(https://tracker.example/x)",
+		"expression(alert(1))",
+		"red",
+		"#12345",
+		"rgb(1,2,3)}",
+		42,
+	]) {
+		await t.test(String(value), async () => {
+			const { result } = await render({ image: { ...image, dominantColor: value } });
+			assert.equal(result.variants[0].img.style, undefined);
+		});
+	}
+});
+
+test("invalid blurhashes do not throw and fall back to a valid dominant colour", async () => {
+	for (const blurhash of ["abc", 123]) {
+		const invalid = await render({ image: { ...image, blurhash } });
+		assert.equal(invalid.result.variants[0].img.style, undefined);
+
+		const fallback = await render({
+			image: { ...image, blurhash, dominantColor: "rgb(10,20,30)" },
+		});
+		assert.equal(fallback.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+	}
+});
