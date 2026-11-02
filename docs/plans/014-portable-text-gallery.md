@@ -191,4 +191,29 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `d9abd15` (`--no-ff` of `task/014-portable-text-gallery` onto `16c398c`). Task
+  commits: T1 `56b5995` (review 1 FIX, fix round 1, review 2 PASS); T2 `f3116c0` (review 1 PASS
+  with no findings). Gates: `GATES OK`; `node scripts/release.mjs verify` printed
+  `RELEASE OK 0.3.1`; `git diff main -- src/picture.mjs src/placeholder.mjs src/sources.mjs
+  src/Picture.astro src/PortableTextImage.astro package-lock.json .github` empty; `VERIFY OK` on
+  main. The lockfile did not change, so no install on main. `version` stays `0.3.1`; nothing
+  tagged, pushed or published.
+- **Decisions:** None: the executors asked no questions; no plan amendments.
+- **Surprises:** None.
+- **Deviations:** None. T1's fix round replaced the plan's example negative case (an id
+  `"constructor"`) with an inherited key holding a valid `sha1:` hash
+  (`Object.create({ inherited: … })`): `{}["constructor"]` is a function, which
+  `contentHashVersion` (`src/layout.mjs`) ignores as a non-string, so that case passed without the
+  `Object.hasOwn` check. With `id in contentHashes` the new assertion fails at
+  `test/picture.test.mjs:802` (executor's mutation proof).
+- **Follow-ups:**
+  - `portableTextMedia` now passes a node's `focalX`/`focalY` into `portableTextImageModel` too.
+    The plan accepts it (image blocks carry no focal point), but an image block that ever stores
+    a focal point would start getting `object-position` (T1 review notes).
+  - `src/portable-text-gallery.mjs` imports `src/portable-text-image.mjs`, which imports
+    `sanitizeHref` from `emdash`; the new files import nothing from `emdash` directly, as the plan
+    requires (T1 review note).
+  - `PortableTextGallery` is unreleased under `## Unreleased` `### Added`; the next release is a
+    minor (0.4.0, ADR-0003).
+- **Proposed rules:** None: the run's one FIX finding (`[test]`, a negative test that passed for
+  the wrong reason) came up in a single review.

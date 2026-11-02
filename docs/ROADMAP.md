@@ -18,10 +18,7 @@ adopts the package on its own side.
    guard already reads the `media` table through EmDash's own Kysely connection
    (`src/media-database.mjs`), so only the CLI maintenance commands are tied to Postgres. That
    ADR also answers ADR-0004's open question (a content-hash lookup without the site's help).
-2. **Portable Text `gallery` block.** ADR-0008 (accepted 2026-11-02):
-   `PortableTextGallery.astro` with a `contentHashes` map, on the same model as
-   `PortableTextImage`. The `cover` block stays on EmDash's component (ADR-0008).
-3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
+2. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked; check it the first time a re-run is
    needed, before relying on it.
 
@@ -115,3 +112,11 @@ adopts the package on its own side.
     `E422` on the `repository.url` owner spelling). Whether the approval counts as the trusted
     publisher's first successful publish for the two-day expiry shows on npmjs.com after
     2026-11-04 (ADR-0007 unknown).
+15. **Portable Text gallery — plan 014** (merge `d9abd15`). ADR-0008 in place:
+    `@nimitzua/emdash-images/PortableTextGallery.astro` renders EmDash's Portable Text `gallery`
+    block over `portableTextMedia` (shared with `PortableTextImage`, now also carrying
+    `focalX`/`focalY`) and `pictureModel`: AVIF and WebP sources per image, a `contentHashes`
+    `Map` or own-key object, `columns` (positive integer, else 3) as `--columns`, EmDash's default
+    `sizes` or a `sizes` prop, captions and placeholders, no CSS; README, SKILL.md and
+    `### Added` in `CHANGELOG.md`. The `cover` block stays on EmDash's component. Unreleased; the
+    next release is a minor.
