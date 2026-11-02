@@ -2,10 +2,12 @@
 
 ## Repository
 
-The source repository is GitHub `nimitzua/emdash-images`. Point `origin` at it once:
+The source repository is GitHub `NimitzUA/emdash-images`. Point `origin` at it once. The
+`repository.url` owner spelling must match GitHub exactly because npm compares it with the
+provenance case-sensitively:
 
 ```sh
-git remote set-url origin https://github.com/nimitzua/emdash-images.git
+git remote set-url origin https://github.com/NimitzUA/emdash-images.git
 ```
 
 Push `main` and check the first CI run:
@@ -148,6 +150,9 @@ authentication and disallow tokens.
 
    Approving requires the owner to sign in (`npm login` in the CLI, or on npmjs.com) and enter a
    two-factor code; on npmjs.com, use **Approve** under **Staged Packages**.
+
+`v0.3.0` was tagged on 2026-11-02 but not published because npm rejected its provenance with
+`E422` for the owner spelling. Its tag stays, and `0.3.1` is the next published version.
 
 ## If the CI publish fails
 

@@ -15,11 +15,11 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/nimitzua/emdash-images.git"
+		"url": "git+https://github.com/NimitzUA/emdash-images.git"
 	},
-	"homepage": "https://github.com/nimitzua/emdash-images#readme",
+	"homepage": "https://github.com/NimitzUA/emdash-images#readme",
 	"bugs": {
-		"url": "https://github.com/nimitzua/emdash-images/issues"
+		"url": "https://github.com/NimitzUA/emdash-images/issues"
 	},
 	"engines": {
 		"node": ">=26"

@@ -4,6 +4,12 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+### Fixed
+
+- Package metadata (`repository`, `homepage`, `bugs`) and the README name the GitHub repository
+  `NimitzUA/emdash-images`, matching the provenance npm checks. `0.3.0` was tagged but never
+  published because npm rejected its provenance.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added
