@@ -91,7 +91,7 @@ is unclear, confirm whether 0.2.0 was published before trying to publish it agai
 ## Trusted publisher (once, right before the second release)
 
 On npmjs.com, open the package settings and choose **Trusted Publisher**. Select **GitHub Actions**
-and enter owner `nimitzua`, repository `emdash-images`, workflow `release.yml`, and no environment;
+and enter owner `NimitzUA` (spelled exactly as GitHub shows it), repository `emdash-images`, workflow `release.yml`, and no environment;
 leave **allow npm publish** unchecked, so CI can only stage releases. The owner approves the first
 staged version within 2 days of adding the configuration. If no publish succeeds within 2 days,
 the trusted publisher expires. Delete it and add it again before retrying.
