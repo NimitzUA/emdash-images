@@ -12,7 +12,7 @@ The package ships two optional components: `Picture.astro` for EmDash image fiel
 | Astro | 7.x |
 | Node.js | 26.x or later |
 
-The package is MIT licensed. The source repository is [nimitzua/emdash-images](https://github.com/nimitzua/emdash-images).
+The package is MIT licensed. The source repository is [NimitzUA/emdash-images](https://github.com/NimitzUA/emdash-images).
 
 ## Install
 
