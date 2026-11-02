@@ -94,4 +94,24 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `dd544f2` (`--no-ff` of `task/012-staged-publishing` onto `a458b3d`). Task commit:
+  T1 `19ba03d`, review 1 PASS with no findings. No fix rounds. Gates: `GATES OK`;
+  `node scripts/release.mjs verify` from the worktree's copy printed `RELEASE OK 0.2.0`;
+  `git diff main -- src package.json package-lock.json CHANGELOG.md .github/workflows/ci.yml`
+  empty; `VERIFY OK` on main. The lockfile did not change, so no install on main. `version` stays
+  `0.2.0`; nothing tagged, pushed or published.
+- **Decisions:** None: the executor asked no questions; no plan amendments.
+- **Surprises:** The executor's policy refused `gh run list --help` and `gh run watch --help`
+  ("No remote operations from executors."), and the reviewer's sandbox could not read
+  `~/.config/gh`, so the `gh` flags in `docs/RELEASING.md` (`--workflow`, `--limit`,
+  `--exit-status`) were checked against the cli.github.com manual, not run locally.
+- **Deviations:** None.
+- **Follow-ups:**
+  - «If the CI publish fails» still advises `gh run rerun <run-id>`. When the version is already
+    staged, the registry skip step does not see it (it is not yet on npm), so a rerun may try to
+    stage it a second time. This is an ADR-0007 unknown; check it at the 0.3.0 release (T1
+    review note).
+  - The owner's manual steps for 0.3.0: add the trusted publisher on npmjs.com with "allow npm
+    publish" unchecked, then release within 2 days and approve the staged version with a
+    two-factor code (`docs/RELEASING.md`).
+- **Proposed rules:** None: the run had no findings.

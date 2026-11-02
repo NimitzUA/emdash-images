@@ -12,11 +12,11 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Staged publishing, then release 0.3.0.** ADR-0007 (owner, 2026-11-02): CI runs
-   `npm stage publish` and the owner approves every version with two-factor authentication;
-   plan 012 changes `release.yml` and `docs/RELEASING.md`. Then the owner adds the trusted
-   publisher with "allow npm publish" unchecked and releases 0.3.0; the configuration expires
-   unless a publish succeeds within 2 days.
+1. **Release 0.3.0.** Staged publishing is in place (plan 012). The owner adds the trusted
+   publisher with "allow npm publish" unchecked and releases 0.3.0 by `docs/RELEASING.md`; the
+   configuration expires unless a publish succeeds within 2 days. Check then whether
+   `gh run rerun` on a run whose version is already staged tries to stage it again (ADR-0007
+   unknown).
 2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
@@ -96,3 +96,8 @@ adopts the package on its own side.
     README, SKILL.md and `### Added` in `CHANGELOG.md`. Unreleased; the next release is 0.3.0.
     The Outcome's README follow-ups (`rgba()`, the `placeholder` prop and `#` links in
     «Portable Text images», a guarded wrapper example) fixed by the architect on 2026-11-02.
+12. **Staged publishing — plan 012** (merge `dd544f2`). ADR-0007 in place: `release.yml` checks
+    npm >= 11.15.0 and runs `npm stage publish`, so CI can only stage; `docs/RELEASING.md` has
+    the owner review and approve each version (`npm stage list`, `view`, `approve` with a
+    two-factor code), reject with `npm stage reject`, and watch runs by id
+    (`gh run watch <run-id> --exit-status`). No package change.
