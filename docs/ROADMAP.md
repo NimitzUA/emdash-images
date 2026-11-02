@@ -12,22 +12,16 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Release 0.3.1.** `v0.3.0` was tagged on 2026-11-02 but not published: run
-   `41372704831` failed first with `E401` (trusted publisher owner spelling, fixed on npmjs.com
-   to `NimitzUA`), then with `E422` because `package.json` `repository.url` names `nimitzua`
-   while the provenance names `NimitzUA`. Plan 013 fixed the metadata (merge `f13402f`); the
-   owner releases 0.3.1 and approves it before the trusted publisher's two days run out (added
-   2026-11-02 about 01:28 UTC). Check then whether `gh run rerun` on a run whose version is
-   already staged tries to stage it again (ADR-0007 unknown). Before that, `docs/RELEASING.md`
-   «Trusted publisher» (line 94) still says owner `nimitzua`; it should say `NimitzUA` (plan 013
-   Outcome).
-2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
+1. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-3. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
+2. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
    «Scope».
+3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
+   staged tries to stage it again is still unchecked; check it the first time a re-run is
+   needed, before relying on it.
 
 ## Out of scope
 
@@ -110,3 +104,12 @@ adopts the package on its own side.
     `NimitzUA/emdash-images`, matching the provenance npm compares case-sensitively;
     `docs/RELEASING.md` records that `v0.3.0` was tagged but never published (`E422`) and that
     0.3.1 is next; `### Fixed` under `## Unreleased`. The npm scope stays `@nimitzua`.
+    `docs/RELEASING.md` «Trusted publisher» names owner `NimitzUA` (architect, `181b5ec`).
+14. **Release 0.3.1** (commit `1507e64`, tag `v0.3.1`, 2026-11-02). The first release from CI:
+    `release.yml` run `41375433147` staged it through trusted publishing (`NimitzUA`,
+    `release.yml`, no environment, stage only), and the owner approved it with two-factor
+    authentication. `npm view` shows `latest: '0.3.1'` with SLSA provenance. It carries the
+    0.3.0 changes: `v0.3.0` was tagged but never published (run `41372704831`: `E401`, then
+    `E422` on the `repository.url` owner spelling). Whether the approval counts as the trusted
+    publisher's first successful publish for the two-day expiry shows on npmjs.com after
+    2026-11-04 (ADR-0007 unknown).
