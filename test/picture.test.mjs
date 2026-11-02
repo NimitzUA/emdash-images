@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { pictureModel } from "../src/picture.mjs";
+import { portableTextImageModel } from "../src/portable-text-image.mjs";
 
 const siteUrl = new URL("https://site.example.test/blog/post/");
 const image = {
@@ -64,6 +65,31 @@ async function render(props = {}, apiOptions = {}, contextOptions = {}) {
 	);
 	return { ...api, result };
 }
+
+async function renderPortableText(node, props = {}, apiOptions = {}, contextOptions = {}) {
+	const api = createImageApi(apiOptions);
+	const result = await portableTextImageModel(
+		{ node, ...props },
+		{
+			getImage: api.getImage,
+			imageConfig: contextOptions.imageConfig ?? {},
+			locals: contextOptions.locals ?? {},
+			url: contextOptions.url ?? siteUrl,
+		},
+	);
+	return { ...api, result };
+}
+
+const portableTextNode = {
+	asset: {
+		_ref: "photo-ref",
+		url: "/_emdash/api/media/file/photo.jpg",
+		width: 1600,
+		height: 1000,
+	},
+	width: 1600,
+	height: 1000,
+};
 
 test("media URLs prefer src, then the public storage URL, then the media id", async () => {
 	const direct = await render({ image: { ...image, src: "https://cdn.example.test/direct.jpg" } });
@@ -322,4 +348,278 @@ test("a dark variant without a URL is omitted and an unresolved primary renders 
 
 	const unresolved = await render({ image: { id: "", src: "" } });
 	assert.deepEqual(unresolved.result, { variants: [] });
+});
+
+test("blurhash placeholders render from the media field and metadata", async () => {
+	const blurhash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+	for (const imageValue of [
+		{ ...image, blurhash },
+		{ ...image, meta: { blurhash } },
+	]) {
+		const { result } = await render({ image: imageValue });
+		assert.match(
+			result.variants[0].img.style,
+			/^background-image: url\("data:image\/bmp;base64,[A-Za-z0-9+/=]+"\); background-size: cover;$/,
+		);
+	}
+});
+
+test("dominant colours accept rgb and hex values", async () => {
+	const rgb = await render({ image: { ...image, dominantColor: "rgb(10,20,30)" } });
+	assert.equal(rgb.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+
+	const hex = await render({ image: { ...image, dominantColor: "#a1b2c3" } });
+	assert.equal(hex.result.variants[0].img.style, "background-color: #a1b2c3;");
+
+	const metadata = await render({ image: { ...image, meta: { dominantColor: "rgb(10,20,30)" } } });
+	assert.equal(metadata.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+});
+
+test("placeholder, focal point, and site style combine in declaration order", async () => {
+	const media = { ...image, dominantColor: "rgb(10,20,30)", focalX: 0.5, focalY: 0.25 };
+	const stringStyle = await render({ image: media, style: "color: red;" });
+	assert.equal(
+		stringStyle.result.variants[0].img.style,
+		"background-color: rgb(10,20,30); object-position: 50% 25%; color: red;",
+	);
+
+	const objectStyle = await render({ image: media, style: { color: "red" } });
+	assert.deepEqual(objectStyle.result.variants[0].img.style, {
+		"background-color": "rgb(10,20,30)",
+		"object-position": "50% 25%",
+		color: "red",
+	});
+});
+
+test("placeholder false disables placeholders and excludes the prop from image attributes", async () => {
+	for (const unchanged of [false, true]) {
+		const { calls, result } = await render(
+			{ placeholder: false, image: { ...image, dominantColor: "rgb(10,20,30)" } },
+			{ unchanged },
+		);
+		assert.equal(result.variants[0].img.style, undefined);
+		assert.equal(Object.hasOwn(result.variants[0].img, "placeholder"), false);
+		assert.ok(calls.length > 0);
+		assert.ok(calls.every((call) => !Object.hasOwn(call, "placeholder")));
+	}
+});
+
+test("dark variants use their own dominant colours", async () => {
+	const { result } = await render({
+		image: {
+			...image,
+			dominantColor: "rgb(1,2,3)",
+			darkVariant: { src: "/media/dark.jpg", dominantColor: "rgb(4,5,6)" },
+		},
+	});
+	assert.deepEqual(
+		result.variants.map(({ img }) => img.style),
+		["background-color: rgb(1,2,3);", "background-color: rgb(4,5,6);"],
+	);
+});
+
+test("fallback img receives the dominant colour placeholder", async () => {
+	const { result } = await render(
+		{ image: { ...image, dominantColor: "rgb(10,20,30)" } },
+		{ unchanged: true },
+	);
+	assert.equal(result.variants[0].img.style, "background-color: rgb(10,20,30);");
+});
+
+test("stored dominant colours cannot add CSS declarations", async (t) => {
+	for (const value of [
+		"red; background-image: url(https://tracker.example/x)",
+		"rgb(1,2,3); color: red",
+		"url(https://tracker.example/x)",
+		"expression(alert(1))",
+		"red",
+		"#12345",
+		"rgb(1,2,3)}",
+		42,
+	]) {
+		await t.test(String(value), async () => {
+			const { result } = await render({ image: { ...image, dominantColor: value } });
+			assert.equal(result.variants[0].img.style, undefined);
+		});
+	}
+});
+
+test("invalid blurhashes do not throw and fall back to a valid dominant colour", async () => {
+	for (const blurhash of ["abc", 123]) {
+		const invalid = await render({ image: { ...image, blurhash } });
+		assert.equal(invalid.result.variants[0].img.style, undefined);
+
+		const fallback = await render({
+			image: { ...image, blurhash, dominantColor: "rgb(10,20,30)" },
+		});
+		assert.equal(fallback.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+	}
+});
+
+test("portableTextImageModel resolves media URLs in order", async () => {
+	const url = await renderPortableText({
+		asset: { ...portableTextNode.asset, url: "/url.jpg", src: "/src.jpg" },
+	});
+	assert.equal(url.calls.find((call) => call.widths).src, "https://site.example.test/url.jpg");
+
+	const src = await renderPortableText({
+		asset: { ...portableTextNode.asset, url: "", src: "/src.jpg" },
+	});
+	assert.equal(src.calls.find((call) => call.widths).src, "https://site.example.test/src.jpg");
+
+	const storageCalls = [];
+	const storage = await renderPortableText(
+		{ asset: { ...portableTextNode.asset, url: undefined, meta: { storageKey: "photo.jpg" } } },
+		{},
+		{},
+		{ locals: { emdash: { getPublicMediaUrl(key) { storageCalls.push(key); return `/public/${key}`; } } } },
+	);
+	assert.deepEqual(storageCalls, ["photo.jpg"]);
+	assert.equal(storage.calls.find((call) => call.widths).src, "https://site.example.test/public/photo.jpg");
+
+	const ref = await renderPortableText({
+		asset: { ...portableTextNode.asset, url: undefined, _ref: "photo-ref" },
+	});
+	assert.equal(
+		ref.calls.find((call) => call.widths).src,
+		"https://site.example.test/_emdash/api/media/file/photo-ref",
+	);
+
+	const id = await renderPortableText({
+		asset: { ...portableTextNode.asset, url: undefined, _ref: undefined, id: "asset-id" },
+	});
+	assert.equal(
+		id.calls.find((call) => call.widths).src,
+		"https://site.example.test/_emdash/api/media/file/asset-id",
+	);
+});
+
+test("portableTextImageModel prefers node media fields and falls back to asset metadata", async () => {
+	const blurhash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+	const nodeValues = await renderPortableText({
+		...portableTextNode,
+		alt: "Node alt",
+		width: 1200,
+		height: 750,
+		blurhash,
+		dominantColor: "rgb(1,2,3)",
+		asset: {
+			...portableTextNode.asset,
+			alt: "Asset alt",
+			width: 900,
+			height: 600,
+			meta: { blurhash: "abc", dominantColor: "#aabbcc" },
+		},
+	});
+	assert.equal(nodeValues.result.variants[0].img.alt, "Node alt");
+	const nodeTransform = nodeValues.calls.find((call) => call.widths);
+	assert.equal(nodeTransform.width, 1080);
+	assert.equal(nodeTransform.height, 675);
+	assert.match(nodeValues.result.variants[0].img.style, /background-image: url\("data:image\/bmp;base64,/);
+
+	const nodeColor = await renderPortableText({
+		...portableTextNode,
+		dominantColor: "rgb(10,20,30)",
+		asset: { ...portableTextNode.asset, meta: { dominantColor: "#aabbcc" } },
+	});
+	assert.equal(nodeColor.result.variants[0].img.style, "background-color: rgb(10,20,30);");
+
+	const assetValues = await renderPortableText({
+		asset: { ...portableTextNode.asset, alt: "Asset alt", width: 800, height: 500 },
+	});
+	assert.equal(assetValues.result.variants[0].img.alt, "Asset alt");
+	const assetTransform = assetValues.calls.find((call) => call.widths);
+	assert.equal(assetTransform.width, 640);
+	assert.equal(assetTransform.height, 400);
+});
+
+test("portableTextImageModel applies display dimensions without changing transforms", async () => {
+	for (const display of [{ displayWidth: 400 }, { displayHeight: 250 }]) {
+		const node = { ...portableTextNode, ...display };
+		const sized = await renderPortableText(node);
+		const original = await renderPortableText(portableTextNode);
+		const { img, sources } = sized.result.variants[0];
+		assert.equal(img.width, 400);
+		assert.equal(img.height, 250);
+		assert.equal(img.sizes, "(min-width: 400px) 400px, 100vw");
+		assert.deepEqual(sources.map((source) => source.sizes), [
+			"(min-width: 400px) 400px, 100vw",
+			"(min-width: 400px) 400px, 100vw",
+		]);
+		assert.deepEqual(sized.calls, original.calls);
+	}
+});
+
+test("portableTextImageModel sets only supported alignment classes", async () => {
+	const wide = await renderPortableText({ ...portableTextNode, alignment: "wide" });
+	assert.equal(wide.result.figureClass, "emdash-image emdash-image--align-wide");
+
+	const middle = await renderPortableText({ ...portableTextNode, alignment: "middle" });
+	assert.equal(middle.result.figureClass, "emdash-image");
+});
+
+test("portableTextImageModel returns caption and forwards title, hash, and placeholder", async () => {
+	const contentHash = "sha1:0123456789abcdef0123456789abcdef01234567";
+	const { calls, result } = await renderPortableText(
+		{ ...portableTextNode, caption: "Caption", title: "Image title" },
+		{ contentHash, placeholder: false },
+	);
+	assert.equal(result.caption, "Caption");
+	assert.equal(result.variants[0].img.title, "Image title");
+	assert.equal(result.variants[0].img.style, undefined);
+	assert.ok(calls.filter((call) => call.widths).every((call) => call.mediaVersion === "0123456789abcdef"));
+
+	const emptyCaption = await renderPortableText({ ...portableTextNode, caption: "" });
+	assert.equal(emptyCaption.result.caption, undefined);
+});
+
+test("portableTextImageModel returns nothing without an asset and ignores PortableText-only props", async () => {
+	for (const node of [undefined, {}, { asset: undefined }]) {
+		const missing = await renderPortableText(node);
+		assert.equal(missing.result, undefined);
+		assert.equal(missing.calls.length, 0);
+	}
+	const unresolved = await renderPortableText({ asset: { width: 1600, height: 1000 } });
+	assert.equal(unresolved.result, undefined);
+	assert.equal(unresolved.calls.length, 0);
+
+	const forwarded = await renderPortableText(portableTextNode, { index: 3, isInline: true });
+	assert.ok(forwarded.calls.length > 0);
+	for (const call of forwarded.calls) {
+		assert.equal(Object.hasOwn(call, "index"), false);
+		assert.equal(Object.hasOwn(call, "isInline"), false);
+	}
+	const img = forwarded.result.variants[0].img;
+	assert.equal(Object.hasOwn(img, "index"), false);
+	assert.equal(Object.hasOwn(img, "isInline"), false);
+});
+
+test("portableTextImageModel sanitizes stored links", async () => {
+	const blocked = [
+		"javascript:alert(1)",
+		" java\tscript:alert(1)",
+		"//evil.example",
+		"data:text/html,x",
+	];
+	const cases = [
+		{ input: " https://example.com/a ", expected: { href: "https://example.com/a" } },
+		{ input: "/local", expected: { href: "/local" } },
+		{ input: "mailto:x@example.com", expected: { href: "mailto:x@example.com" } },
+		{
+			input: { href: " https://example.com/a ", blank: true },
+			expected: { href: "https://example.com/a", target: "_blank", rel: "noopener noreferrer" },
+		},
+		{ input: { href: "#top", blank: true }, expected: { href: "#top" } },
+		{ input: "   ", expected: undefined },
+		...blocked.flatMap((href) => [
+			{ input: href, expected: { href: "#" } },
+			{ input: { href, blank: true }, expected: { href: "#" } },
+		]),
+	];
+
+	for (const { input, expected } of cases) {
+		const { result } = await renderPortableText({ ...portableTextNode, link: input });
+		assert.deepEqual(result.link, expected, JSON.stringify(input));
+		if (expected?.href === "#") assert.equal(Object.hasOwn(result.link, "target"), false);
+	}
 });

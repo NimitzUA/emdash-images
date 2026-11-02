@@ -1,8 +1,8 @@
 # @nimitzua/emdash-images
 
-Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, an optional `Picture.astro` component for EmDash image fields, cache warm-up, and media backfill and cleanup helpers.
+Reusable server-side image pipeline for EmDash sites. It provides an Astro image service, the `/_image` request guard, the `pictureSources` URL contract, an optional `Picture.astro` component for EmDash image fields, a `PortableTextImage.astro` component for Portable Text image blocks, cache warm-up, and media backfill and cleanup helpers.
 
-The package ships one optional component, `Picture.astro`, for EmDash image fields. Each site still owns art direction, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
+The package ships two optional components: `Picture.astro` for EmDash image fields and `PortableTextImage.astro` for Portable Text image blocks. Each site still owns art direction, private access rules, middleware composition, and deployment wrappers. It does not add settings to the EmDash admin.
 
 ## Supported versions
 
@@ -159,16 +159,96 @@ import Picture from "@nimitzua/emdash-images/Picture.astro";
 | `position` | Sets CSS `object-position` through Astro's layout attributes when `layout` is not `"none"`; generated URLs never include `position`. |
 | `priority` | Load eagerly and request high fetch priority. |
 | `pictureAttributes` | Attributes to apply to the wrapping `<picture>`. |
+| `placeholder` | LQIP placeholder from `blurhash`, else a hex or `rgb()` `dominantColor`, as an inline background; defaults to `true`; pass `false` for a strict Content Security Policy. |
 
 Standard `<img>` attributes such as `sizes`, `loading`, `decoding`, `class`, `style`, and `id` pass through to the `<img>`. The component does not query for `content_hash`: fetch hashes for the page's media IDs in one site-owned query, then pass each matching value as `contentHash` (and `darkContentHash` for a dark variant). Without a valid hash, generated URLs are unversioned.
 
 When an EmDash image is resolved by its media ID, Astro must allow its path in `image.remotePatterns`, for example `{ pathname: "/_emdash/api/media/file/**" }`. External providers and other sources Astro cannot transform render a plain `<img>` with the resolved URL.
 
-When a dark variant resolves, the component renders the primary and dark variants and applies `emdash-image--light` and `emdash-image--dark` classes to their `<img>` elements. A `dark` or `light` class on `<html>` overrides the system `prefers-color-scheme`; without either class, the component follows that preference. Portable Text images and the placeholder are not covered yet.
+When a dark variant resolves, the component renders the primary and dark variants and applies `emdash-image--light` and `emdash-image--dark` classes to their `<img>` elements. A `dark` or `light` class on `<html>` overrides the system `prefers-color-scheme`; without either class, the component follows that preference. A placeholder is rendered inline by default when the image has a `blurhash` or valid `dominantColor`; pass `placeholder={false}` for a strict Content Security Policy.
 
 ### Custom markup with `pictureSources`
 
 Use `pictureSources()` when site markup needs art direction or output beyond this component. When omitted, `getImage` and `imageConfig` come from `astro:assets`; `publicWidths` and `smallWidths` come from its service configuration (or package defaults if Astro has no configured values). Its input `attributes` are forwarded to image transforms, and the returned `attributes` are the generated image attributes. A hand-built component must forward scoped-style attributes, along with `image.layout` and any other image attributes it uses.
+
+## Portable Text images
+
+Use `PortableTextImage.astro` to replace EmDash's Portable Text `image` block while keeping the other default block renderers:
+
+```astro
+---
+import { PortableText } from "emdash/ui";
+import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
+---
+
+<PortableText
+	value={entry.data.body}
+	components={{ type: { image: PortableTextImage } }}
+/>
+```
+
+`PortableText` gives the block component `node`, `index`, and `isInline`, so it cannot pass `contentHash` directly. Fetch hashes for the page's image media IDs in one site-owned query, expose the resulting map to a site wrapper, then pass the matching hash to `PortableTextImage`. For example, if site middleware or page data setup places that map in `Astro.locals.imageHashes`, the wrapper can do this:
+
+```astro
+---
+import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
+const hashes = Astro.locals.imageHashes;
+---
+
+<PortableTextImage {...Astro.props} contentHash={hashes.get(Astro.props.node.asset._ref)} />
+```
+
+Without a valid `contentHash`, the generated URLs are unversioned. The component renders a `<figure class="emdash-image emdash-image--align-<alignment>">` when an alignment is set, an optional link whose `href` is passed through EmDash's `sanitizeHref`, the image, and an optional `<figcaption>`. `displayWidth` and `displayHeight` set the image's display dimensions, and the image uses the `constrained` layout.
+
+The component ships no CSS. A site replacing EmDash's image block must style the alignment classes and caption itself. This global stylesheet copies EmDash's rules from `node_modules/emdash/src/components/Image.astro`:
+
+```css
+.emdash-image {
+	margin: 1.5rem 0;
+}
+.emdash-image img {
+	max-width: 100%;
+	height: auto;
+}
+.emdash-image figcaption {
+	font-size: 0.875rem;
+	color: var(--emdash-caption-color, var(--color-muted, #666));
+	margin-top: 0.5rem;
+	text-align: center;
+}
+.emdash-image--align-left,
+.emdash-image--align-right {
+	width: fit-content;
+	max-width: 50%;
+}
+.emdash-image--align-left {
+	float: left;
+	margin: 0 1.5rem 1rem 0;
+}
+.emdash-image--align-right {
+	float: right;
+	margin: 0 0 1rem 1.5rem;
+}
+.emdash-image--align-center {
+	width: fit-content;
+	margin-inline: auto;
+}
+.emdash-image--align-wide,
+.emdash-image--align-full {
+	width: 100%;
+}
+@media (max-width: 640px) {
+	.emdash-image--align-left,
+	.emdash-image--align-right {
+		float: none;
+		width: 100%;
+		max-width: 100%;
+		margin-inline: 0;
+	}
+}
+```
+
+This override only replaces the `image` block; `gallery` and `cover` continue to use EmDash's components.
 
 ## Command line
 
@@ -213,4 +293,4 @@ The runtime image needs the installed package in its `node_modules` tree. Set `I
 
 ## Package exports
 
-The root export contains descriptors and helpers. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers.
+The root export contains descriptors and helpers. `./Picture.astro` renders EmDash image fields, and `./PortableTextImage.astro` renders Portable Text image blocks. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers.

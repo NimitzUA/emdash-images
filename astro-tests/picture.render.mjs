@@ -3,6 +3,7 @@ import { experimental_AstroContainer } from "astro/container";
 import { imageConfig } from "astro:assets";
 import { test } from "vitest";
 import Picture from "../src/Picture.astro";
+import PortableTextImage from "../src/PortableTextImage.astro";
 import imageService from "../src/service.mjs";
 
 const container = await experimental_AstroContainer.create();
@@ -19,6 +20,10 @@ const siteOrigin = "https://site.example.test";
 
 function render(props) {
 	return container.renderToString(Picture, { props, request, locals });
+}
+
+function renderPortableText(props) {
+	return container.renderToString(PortableTextImage, { props, request, locals });
 }
 
 function countMatches(value, expression) {
@@ -223,4 +228,64 @@ test("focal point sets object-position on the img", async () => {
 
 	const img = html.match(/<img\b[^>]*>/)?.[0];
 	assert.match(img, /style="object-position: 50% 25%;?"/);
+});
+
+test("blurhash placeholder renders a background image and cover size", async () => {
+	const html = await render({
+		image: {
+			id: "photo-id",
+			src: "/photo.jpg",
+			width: 1600,
+			height: 1000,
+			blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+		},
+	});
+
+	const img = html.match(/<img\b[^>]*>/)?.[0];
+	assert.ok(img);
+	assert.match(attribute(img, "style"), /background-image: url\(/);
+	assert.match(attribute(img, "style"), /background-size: cover/);
+});
+
+test("PortableTextImage renders a linked aligned picture with a caption", async () => {
+	const html = await renderPortableText({
+		node: {
+			asset: { _ref: "photo-id", url: "/_emdash/api/media/file/photo.jpg" },
+			width: 1600,
+			height: 1000,
+			alignment: "wide",
+			caption: "Caption",
+			link: { href: "https://example.com", blank: true },
+		},
+	});
+
+	assert.equal(countMatches(html, /<figure\b/g), 1);
+	assert.match(html, /<figure class="emdash-image emdash-image--align-wide">/);
+	assert.equal(countMatches(html, /<a\b/g), 1);
+	assert.match(html, /<a href="https:\/\/example.com" target="_blank" rel="noopener noreferrer">/);
+	assert.equal(countMatches(html, /<picture\b/g), 1);
+	const sources = [...html.matchAll(/<source\b[^>]*>/g)].map(([source]) => source);
+	assert.equal(sources.length, 2);
+	assert.match(sources[0], /type="image\/avif"/);
+	assert.match(sources[1], /type="image\/webp"/);
+	assert.match(html, /<figcaption>Caption<\/figcaption>/);
+	await assertRenderedUrlsAcceptedByService(html);
+	assertNoPositionParameter(renderedImageUrls(html));
+});
+
+test("PortableTextImage uses displayWidth while keeping service URLs accepted", async () => {
+	const html = await renderPortableText({
+		node: {
+			asset: { _ref: "photo-id", url: "/_emdash/api/media/file/photo.jpg" },
+			width: 1600,
+			height: 1000,
+			displayWidth: 400,
+		},
+	});
+
+	const img = html.match(/<img\b[^>]*>/)?.[0];
+	assert.ok(img);
+	assert.equal(attribute(img, "width"), "400");
+	assert.equal(attribute(img, "height"), "250");
+	await assertRenderedUrlsAcceptedByService(html);
 });

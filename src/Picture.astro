@@ -19,6 +19,8 @@ interface Props extends Omit<HTMLAttributes<"img">, "src" | "width" | "height"> 
 	position?: string;
 	priority?: boolean;
 	pictureAttributes?: HTMLAttributes<"picture">;
+	/** Defaults to true; set false for a strict Content Security Policy. */
+	placeholder?: boolean;
 }
 
 const { variants } = await pictureModel(Astro.props, {
