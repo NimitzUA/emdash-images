@@ -24,7 +24,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
       - run: node scripts/release.mjs verify-tag "$GITHUB_REF_NAME"
-      - run: printf '%s\n' 11.5.1 "$(npm --version)" | sort -V -C
+      - run: printf '%s\n' 11.15.0 "$(npm --version)" | sort -V -C
       - id: registry
         run: |
           version="$(node -p 'require("./package.json").version')"
@@ -35,5 +35,5 @@ jobs:
           fi
       - run: npm ci
         if: steps.registry.outputs.published == 'false'
-      - run: npm publish
+      - run: npm stage publish
         if: steps.registry.outputs.published == 'false'
