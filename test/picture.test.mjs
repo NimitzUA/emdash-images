@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { pictureModel } from "../src/picture.mjs";
-import { portableTextImageModel } from "../src/portable-text-image.mjs";
+import { portableTextGalleryModel } from "../src/portable-text-gallery.mjs";
+import { portableTextImageModel, portableTextMedia } from "../src/portable-text-image.mjs";
 
 const siteUrl = new URL("https://site.example.test/blog/post/");
 const image = {
@@ -69,6 +70,20 @@ async function render(props = {}, apiOptions = {}, contextOptions = {}) {
 async function renderPortableText(node, props = {}, apiOptions = {}, contextOptions = {}) {
 	const api = createImageApi(apiOptions);
 	const result = await portableTextImageModel(
+		{ node, ...props },
+		{
+			getImage: api.getImage,
+			imageConfig: contextOptions.imageConfig ?? {},
+			locals: contextOptions.locals ?? {},
+			url: contextOptions.url ?? siteUrl,
+		},
+	);
+	return { ...api, result };
+}
+
+async function renderPortableTextGallery(node, props = {}, apiOptions = {}, contextOptions = {}) {
+	const api = createImageApi(apiOptions);
+	const result = await portableTextGalleryModel(
 		{ node, ...props },
 		{
 			getImage: api.getImage,
@@ -621,5 +636,250 @@ test("portableTextImageModel sanitizes stored links", async () => {
 		const { result } = await renderPortableText({ ...portableTextNode, link: input });
 		assert.deepEqual(result.link, expected, JSON.stringify(input));
 		if (expected?.href === "#") assert.equal(Object.hasOwn(result.link, "target"), false);
+	}
+});
+
+function galleryImage(id, fields = {}) {
+	return {
+		asset: { _ref: id, url: `/media/${id}.jpg`, width: 1600, height: 1000 },
+		width: 1600,
+		height: 1000,
+		alt: `${id} alt`,
+		...fields,
+	};
+}
+
+test("portableTextMedia maps image fields and carries numeric focal points", () => {
+	const meta = { blurhash: "asset-blurhash", dominantColor: "#aabbcc" };
+	const node = {
+		asset: {
+			_ref: "media-ref",
+			id: "asset-id",
+			url: "/media/photo.jpg",
+			src: "/media/fallback.jpg",
+			meta,
+			provider: "local",
+			alt: "Asset alt",
+			width: 900,
+			height: 600,
+		},
+		alt: "Node alt",
+		width: 800,
+		height: 500,
+		blurhash: "node-blurhash",
+		dominantColor: "rgb(1,2,3)",
+		focalX: 0.25,
+		focalY: 0.75,
+	};
+	assert.deepEqual(portableTextMedia(node), {
+		id: "media-ref",
+		src: "/media/photo.jpg",
+		meta,
+		provider: "local",
+		alt: "Node alt",
+		width: 800,
+		height: 500,
+		blurhash: "node-blurhash",
+		dominantColor: "rgb(1,2,3)",
+		focalX: 0.25,
+		focalY: 0.75,
+	});
+	assert.deepEqual(portableTextMedia({ asset: {}, focalX: "0.5", focalY: null }), {
+		id: undefined,
+		src: undefined,
+		meta: undefined,
+		provider: undefined,
+		alt: undefined,
+		width: undefined,
+		height: undefined,
+		blurhash: undefined,
+		dominantColor: undefined,
+	});
+	assert.equal(portableTextMedia(undefined), undefined);
+	assert.equal(portableTextMedia({ asset: null }), undefined);
+	assert.equal(portableTextMedia({ asset: "not-an-object" }), undefined);
+});
+
+test("portableTextGalleryModel keeps image order and uses each image source", async () => {
+	const { calls, result } = await renderPortableTextGallery({
+		images: [
+			galleryImage("first", { caption: "First caption" }),
+			galleryImage("second", { caption: "Second caption" }),
+		],
+	});
+	assert.equal(result.items.length, 2);
+	assert.deepEqual(result.items.map(({ caption }) => caption), ["First caption", "Second caption"]);
+	assert.deepEqual(result.items.map(({ variants }) => variants[0].img.alt), ["first alt", "second alt"]);
+	const transformedSources = calls.filter((call) => call.widths).map((call) => call.src);
+	assert.ok(transformedSources.length > 0);
+	assert.ok(transformedSources.filter((source) => source.endsWith("/first.jpg")).length > 0);
+	assert.ok(transformedSources.filter((source) => source.endsWith("/second.jpg")).length > 0);
+	assert.ok(transformedSources.every((source) =>
+		source.endsWith("/first.jpg") || source.endsWith("/second.jpg")));
+});
+
+test("portableTextGalleryModel computes safe columns and default sizes", async () => {
+	const columnTwo = await renderPortableTextGallery({
+		columns: 2,
+		images: [galleryImage("two")],
+	});
+	assert.equal(columnTwo.result.style, "--columns: 2");
+	assert.equal(
+		columnTwo.result.items[0].variants[0].img.sizes,
+		"(max-width: 640px) calc((100vw - 1rem) / 2), calc((100vw - 1rem) / 2)",
+	);
+	assert.deepEqual(
+		columnTwo.result.items[0].variants[0].sources.map((source) => source.sizes),
+		[
+			"(max-width: 640px) calc((100vw - 1rem) / 2), calc((100vw - 1rem) / 2)",
+			"(max-width: 640px) calc((100vw - 1rem) / 2), calc((100vw - 1rem) / 2)",
+		],
+	);
+
+	const defaults = await renderPortableTextGallery({ images: [galleryImage("default")] });
+	assert.equal(defaults.result.style, "--columns: 3");
+	assert.equal(
+		defaults.result.items[0].variants[0].img.sizes,
+		"(max-width: 640px) calc((100vw - 1rem) / 2), calc((100vw - 2rem) / 3)",
+	);
+
+	const oneColumn = await renderPortableTextGallery({
+		columns: 1,
+		images: [galleryImage("one")],
+	});
+	assert.equal(oneColumn.result.style, "--columns: 1");
+	assert.equal(
+		oneColumn.result.items[0].variants[0].img.sizes,
+		"(max-width: 640px) calc((100vw - 1rem) / 2), 100vw",
+	);
+});
+
+test("portableTextGalleryModel applies sizes to the img and both sources", async () => {
+	const sizes = "(max-width: 40rem) 90vw, 30rem";
+	const { result } = await renderPortableTextGallery(
+		{ images: [galleryImage("sized")] },
+		{ sizes },
+	);
+	const { img, sources } = result.items[0].variants[0];
+	assert.equal(img.sizes, sizes);
+	assert.deepEqual(sources.map((source) => source.sizes), [sizes, sizes]);
+});
+
+test("portableTextGalleryModel applies Map and own object content hashes by media id", async () => {
+	const mapHash = "sha1:0123456789abcdef0123456789abcdef01234567";
+	const mapVersioned = await renderPortableTextGallery(
+		{ images: [galleryImage("unversioned"), galleryImage("map-versioned")] },
+		{ contentHashes: new Map([["map-versioned", mapHash]]) },
+	);
+	const mapTransforms = mapVersioned.calls.filter((call) => call.widths);
+	const mapUnversioned = mapTransforms.filter((call) => call.src.endsWith("/unversioned.jpg"));
+	const mapVersionedCalls = mapTransforms.filter((call) => call.src.endsWith("/map-versioned.jpg"));
+	assert.ok(mapUnversioned.length > 0);
+	assert.ok(mapVersionedCalls.length > 0);
+	assert.ok(mapUnversioned.every((call) => !Object.hasOwn(call, "mediaVersion")));
+	assert.ok(mapVersionedCalls.every((call) => call.mediaVersion === "0123456789abcdef"));
+
+	const objectHash = "sha1:abcdef0123456789abcdef0123456789abcdef01";
+	const objectVersioned = await renderPortableTextGallery(
+		{ images: [galleryImage("object-versioned"), galleryImage("unversioned")] },
+		{ contentHashes: { "object-versioned": objectHash } },
+	);
+	const objectTransforms = objectVersioned.calls.filter((call) => call.widths);
+	const objectVersionedCalls = objectTransforms.filter((call) => call.src.endsWith("/object-versioned.jpg"));
+	const objectUnversioned = objectTransforms.filter((call) => call.src.endsWith("/unversioned.jpg"));
+	assert.ok(objectVersionedCalls.length > 0);
+	assert.ok(objectUnversioned.length > 0);
+	assert.ok(objectVersionedCalls.every((call) => call.mediaVersion === "abcdef0123456789"));
+	assert.ok(objectUnversioned.every((call) => !Object.hasOwn(call, "mediaVersion")));
+
+	const inheritedHash = "sha1:0123456789abcdef0123456789abcdef01234567";
+	const inheritedName = await renderPortableTextGallery(
+		{ images: [galleryImage("inherited")] },
+		{ contentHashes: Object.create({ inherited: inheritedHash }) },
+	);
+	const inheritedNameTransforms = inheritedName.calls.filter((call) => call.widths);
+	assert.ok(inheritedNameTransforms.length > 0);
+	assert.ok(inheritedNameTransforms.every((call) => !Object.hasOwn(call, "mediaVersion")));
+
+	const missingId = await renderPortableTextGallery(
+		{
+			images: [{ asset: { url: "/media/no-id.jpg", width: 1600, height: 1000 }, width: 1600, height: 1000 }],
+		},
+		{ contentHashes: { undefined: objectHash } },
+	);
+	const missingIdTransforms = missingId.calls.filter((call) => call.widths);
+	assert.ok(missingIdTransforms.length > 0);
+	assert.ok(missingIdTransforms.every((call) => !Object.hasOwn(call, "mediaVersion")));
+});
+
+test("portableTextGalleryModel puts focal point and placeholder styles on each img", async () => {
+	const placeholderHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+	const withPlaceholder = await renderPortableTextGallery({
+		images: [
+			galleryImage("blur", { focalX: 0.25, focalY: 0.75, blurhash: placeholderHash }),
+			galleryImage("color", { focalX: 0.5, focalY: 0.25, dominantColor: "rgb(10,20,30)" }),
+		],
+	});
+	const styles = withPlaceholder.result.items.map(({ variants }) => variants[0].img.style);
+	assert.match(styles[0], /background-image: url\(/);
+	assert.match(styles[0], /object-position: 25% 75%/);
+	assert.match(styles[1], /background-color: rgb\(10,20,30\)/);
+	assert.match(styles[1], /object-position: 50% 25%/);
+
+	const disabled = await renderPortableTextGallery(
+		{ images: [galleryImage("disabled", { blurhash: placeholderHash, dominantColor: "#aabbcc" })] },
+		{ placeholder: false },
+	);
+	assert.equal(disabled.result.items[0].variants[0].img.style, undefined);
+});
+
+test("portableTextGalleryModel skips missing assets and empty render results", async () => {
+	for (const node of [
+		undefined,
+		{ images: undefined },
+		{ images: null },
+		{ images: [] },
+		{ images: [{}, { asset: null }, { asset: "not-an-object" }, { asset: {} }] },
+	]) {
+		const missing = await renderPortableTextGallery(node);
+		assert.equal(missing.result, undefined);
+		assert.equal(missing.calls.length, 0);
+	}
+
+	const skipped = await renderPortableTextGallery({
+		images: [{ asset: null }, galleryImage("visible"), { asset: {} }],
+	});
+	assert.equal(skipped.result.items.length, 1);
+	assert.equal(skipped.result.items[0].variants[0].img.alt, "visible alt");
+
+	const forwarded = await renderPortableTextGallery(
+		{ images: [galleryImage("forwarded")] },
+		{ index: 3, isInline: true },
+	);
+	assert.ok(forwarded.calls.length > 0);
+	for (const call of forwarded.calls) {
+		assert.equal(Object.hasOwn(call, "index"), false);
+		assert.equal(Object.hasOwn(call, "isInline"), false);
+	}
+});
+
+test("portableTextGalleryModel blocks unsafe stored column values", async (t) => {
+	const blockedColumns = [
+		"2; background: url(https://tracker.example/x)",
+		"4",
+		-1,
+		0,
+		2.5,
+		Infinity,
+		null,
+	];
+	for (const columns of blockedColumns) {
+		await t.test(String(columns), async () => {
+			const { result } = await renderPortableTextGallery({
+				columns,
+				images: [galleryImage("safe")],
+			});
+			assert.equal(result.style, "--columns: 3");
+		});
 	}
 });

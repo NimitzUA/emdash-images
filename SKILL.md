@@ -30,15 +30,16 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
    The component does not query for the hash. Fetch `content_hash` for the page's media IDs in one site-owned query and pass the matching value; without it, generated URLs are unversioned. Astro's `image.remotePatterns` must allow `/_emdash/api/media/file/**` for EmDash media paths.
 
-   For Portable Text, replace the `image` block on EmDash's `PortableText` with `PortableTextImage.astro`:
+   For Portable Text, replace the `image` and `gallery` blocks on EmDash's `PortableText` with `PortableTextImage.astro` and `PortableTextGallery.astro`:
 
    ```astro
    ---
    import { PortableText } from "emdash/ui";
    import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
+   import PortableTextGallery from "@nimitzua/emdash-images/PortableTextGallery.astro";
    ---
 
-   <PortableText value={entry.data.body} components={{ type: { image: PortableTextImage } }} />
+   <PortableText value={entry.data.body} components={{ type: { image: PortableTextImage, gallery: PortableTextGallery } }} />
    ```
 
 6. **Pass the same lists to scheduled warm-up.** Manual publish and media-replacement call sites should call `scheduleImageWarmup({ deniedStorageKeyPrefixes, deniedPagePathPrefixes })` using values from `imageOptions`. Any code that manually starts a warm-up should pass those lists to `warmPublicSite()` too.
@@ -58,5 +59,5 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 ## Package behavior to preserve
 
 - `pictureSources()` creates unversioned URLs when a media row has no content hash; it returns `undefined` only when the source cannot be transformed.
-- `Picture.astro` renders image fields with the placeholder enabled by default; `PortableTextImage.astro` renders Portable Text `image` blocks. `pictureSources()` reads configured widths from `astro:assets` when `publicWidths` or `smallWidths` are not passed. Astro's `data-image-component` development marker is site-owned. A hand-built site component must forward `image.layout`, scoped-style attributes, and other image attributes that it uses.
+- `Picture.astro` renders image fields with the placeholder enabled by default; `PortableTextImage.astro` renders Portable Text `image` blocks; `PortableTextGallery.astro` renders Portable Text `gallery` blocks. `pictureSources()` reads configured widths from `astro:assets` when `publicWidths` or `smallWidths` are not passed. Astro's `data-image-component` development marker is site-owned. A hand-built site component must forward `image.layout`, scoped-style attributes, and other image attributes that it uses.
 - A site that manually handles successful publish or media replacement should pass the same deny lists to the scheduler as the native plugin descriptor.

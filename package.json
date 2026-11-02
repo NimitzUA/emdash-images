@@ -48,6 +48,7 @@
 		},
 		"./Picture.astro": "./src/Picture.astro",
 		"./PortableTextImage.astro": "./src/PortableTextImage.astro",
+		"./PortableTextGallery.astro": "./src/PortableTextGallery.astro",
 		"./warmup": {
 			"types": "./src/warmup.d.mts",
 			"import": "./src/warmup.mjs"

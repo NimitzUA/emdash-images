@@ -3,13 +3,12 @@ import { pictureModel } from "./picture.mjs";
 
 const ALIGNMENTS = new Set(["left", "center", "right", "wide", "full"]);
 
-export async function portableTextImageModel(props, context) {
-	const node = props?.node;
+export function portableTextMedia(node) {
 	const asset = node?.asset;
 	if (!asset || typeof asset !== "object") return undefined;
 
 	const meta = asset.meta;
-	const media = {
+	return {
 		id: firstNonEmptyString(asset._ref, asset.id),
 		src: firstNonEmptyString(asset.url, asset.src),
 		meta,
@@ -19,7 +18,16 @@ export async function portableTextImageModel(props, context) {
 		height: node.height ?? asset.height,
 		blurhash: node.blurhash ?? meta?.blurhash,
 		dominantColor: node.dominantColor ?? meta?.dominantColor,
+		...(typeof node.focalX === "number" ? { focalX: node.focalX } : {}),
+		...(typeof node.focalY === "number" ? { focalY: node.focalY } : {}),
 	};
+}
+
+export async function portableTextImageModel(props, context) {
+	const node = props?.node;
+	const media = portableTextMedia(node);
+	if (!media) return undefined;
+
 	const dimensions = renderDimensions(media, node);
 	const picture = await pictureModel({
 		image: media,
