@@ -116,14 +116,13 @@ export function createImageService(service = sharpService, options = {}) {
 	const cacheStates = new Map();
 
 	function getCacheDirectory(imageConfig) {
-		const configuredCacheDirectory = process.env.IMAGE_CACHE_DIR?.trim()
-			|| serviceConfig(imageConfig).cacheDirectory
-			|| options.cacheDirectory;
-		return path.resolve(
-			typeof configuredCacheDirectory === "string" && configuredCacheDirectory.trim()
-				? configuredCacheDirectory
-				: defaultCacheDirectory,
-		);
+		const configuredCacheDirectory = [
+			process.env.IMAGE_CACHE_DIR,
+			serviceConfig(imageConfig).cacheDirectory,
+			options.cacheDirectory,
+		].map((candidate) => typeof candidate === "string" ? candidate.trim() : "")
+			.find(Boolean) ?? defaultCacheDirectory;
+		return path.resolve(configuredCacheDirectory);
 	}
 
 	function getCacheState(cacheDirectory) {

@@ -168,9 +168,10 @@ export async function runCli(argv, {
 			return 0;
 		}
 
-		const cacheDirectory = resolveCacheDirectory(commandEnv, imageOptions, cwd);
+		const cacheDirectory = resolveCacheDirectory(commandEnv, imageOptions, cwd)
+			?? path.resolve(cwd, ".dev/image-cache");
 		const warmOptions = {
-			...(cacheDirectory === undefined ? {} : { cacheDirectory }),
+			cacheDirectory,
 			deniedStorageKeyPrefixes: imageOptions.deniedStorageKeyPrefixes,
 			deniedPagePathPrefixes: imageOptions.deniedPagePathPrefixes,
 		};

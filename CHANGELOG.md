@@ -4,6 +4,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+### Fixed
+
+- The image service trims a configured `cacheDirectory`, as it already trims `IMAGE_CACHE_DIR` and as the CLI does, so a path with surrounding spaces resolves to the same directory everywhere.
+
 ## [0.2.0] - 2026-11-01
 
 ### Added
