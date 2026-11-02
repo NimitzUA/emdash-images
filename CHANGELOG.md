@@ -4,6 +4,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+## [0.3.0] - 2026-11-02
+
 ### Added
 
 - `PortableTextImage.astro` component (`@nimitzua/emdash-images/PortableTextImage.astro`) for EmDash's Portable Text `image` block: AVIF and WebP sources, configured widths, `contentHash`, alignment classes, link, caption and display size, with no CSS.

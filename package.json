@@ -1,6 +1,6 @@
 {
 	"name": "@nimitzua/emdash-images",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Reusable server-side image pipeline for EmDash.",
 	"type": "module",
 	"license": "MIT",
