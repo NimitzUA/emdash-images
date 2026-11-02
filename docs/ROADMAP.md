@@ -14,11 +14,13 @@ adopts the package on its own side.
 
 1. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
-   and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
-   answers ADR-0004's open question (a content-hash lookup without the site's help), since the
-   guard too reads EmDash's `media` table directly.
-2. **Portable Text `gallery` and `cover` blocks.** Left on EmDash's components by ADR-0006
-   «Scope».
+   and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. The `/_image`
+   guard already reads the `media` table through EmDash's own Kysely connection
+   (`src/media-database.mjs`), so only the CLI maintenance commands are tied to Postgres. That
+   ADR also answers ADR-0004's open question (a content-hash lookup without the site's help).
+2. **Portable Text `gallery` block.** ADR-0008 (accepted 2026-11-02):
+   `PortableTextGallery.astro` with a `contentHashes` map, on the same model as
+   `PortableTextImage`. The `cover` block stays on EmDash's component (ADR-0008).
 3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked; check it the first time a re-run is
    needed, before relying on it.
