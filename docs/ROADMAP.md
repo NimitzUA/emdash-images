@@ -15,10 +15,12 @@ adopts the package on its own side.
 1. **Release 0.3.1.** `v0.3.0` was tagged on 2026-11-02 but not published: run
    `41372704831` failed first with `E401` (trusted publisher owner spelling, fixed on npmjs.com
    to `NimitzUA`), then with `E422` because `package.json` `repository.url` names `nimitzua`
-   while the provenance names `NimitzUA`. Plan 013 fixes the metadata; then the owner releases
-   0.3.1 and approves it before the trusted publisher's two days run out (added 2026-11-02
-   about 01:28 UTC). Check then whether `gh run rerun` on a run whose version is already staged
-   tries to stage it again (ADR-0007 unknown).
+   while the provenance names `NimitzUA`. Plan 013 fixed the metadata (merge `f13402f`); the
+   owner releases 0.3.1 and approves it before the trusted publisher's two days run out (added
+   2026-11-02 about 01:28 UTC). Check then whether `gh run rerun` on a run whose version is
+   already staged tries to stage it again (ADR-0007 unknown). Before that, `docs/RELEASING.md`
+   «Trusted publisher» (line 94) still says owner `nimitzua`; it should say `NimitzUA` (plan 013
+   Outcome).
 2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
@@ -103,3 +105,8 @@ adopts the package on its own side.
     the owner review and approve each version (`npm stage list`, `view`, `approve` with a
     two-factor code), reject with `npm stage reject`, and watch runs by id
     (`gh run watch <run-id> --exit-status`). No package change.
+13. **Repository owner spelling — plan 013** (merge `f13402f`). `package.json` `repository`,
+    `homepage` and `bugs`, the README link and `docs/RELEASING.md` «Repository» name GitHub
+    `NimitzUA/emdash-images`, matching the provenance npm compares case-sensitively;
+    `docs/RELEASING.md` records that `v0.3.0` was tagged but never published (`E422`) and that
+    0.3.1 is next; `### Fixed` under `## Unreleased`. The npm scope stays `@nimitzua`.

@@ -91,4 +91,22 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `f13402f` (`--no-ff` of `task/013-repository-owner-spelling` onto `f6bb539`). Task
+  commit: T1 `6255855`, review 1 PASS with no findings. No fix rounds. Gates: `GATES OK`;
+  `node scripts/release.mjs verify` printed `RELEASE OK 0.3.0`;
+  `git diff main -- src test scripts .github package-lock.json` empty; `VERIFY OK` on main. The
+  lockfile did not change, so no install on main. `version` stays `0.3.0`; nothing tagged,
+  pushed or published.
+- **Decisions:** None: the executor asked no questions; no plan amendments.
+- **Surprises:** None.
+- **Deviations:** None. `CHANGELOG.md` writes `0.3.0` in backticks where the plan's entry text
+  has it plain (review note; harmless).
+- **Follow-ups:**
+  - `docs/RELEASING.md:94` «Trusted publisher» still tells the owner to enter owner `nimitzua`,
+    while the working trusted publisher uses `NimitzUA` and the new sentence in «Repository»
+    says the owner spelling must match GitHub exactly. The plan named only the GitHub URL lines
+    (its grep covered `github.com/nimitzua`), so the run left it (T1 review note).
+  - The owner's manual steps for 0.3.1: `release.mjs prepare 0.3.1`, tag and push, then approve
+    the staged version with a two-factor code (`docs/RELEASING.md`); check whether `gh run rerun`
+    on an already staged version stages it again (ADR-0007 unknown).
+- **Proposed rules:** None: the run had no findings.
