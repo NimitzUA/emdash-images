@@ -42,7 +42,7 @@ Pass one options object to `imageService()` and pass its private-prefix lists to
 | `deniedStorageKeyPrefixes` | `[]` | Storage-key prefixes excluded from public transforms and warm-up. Values are storage keys, such as `restricted/`, not media URLs. |
 | `deniedPagePathPrefixes` | `[]` | Page-path prefixes excluded from warm-up, such as `/members`. |
 
-The image service resolves its cache directory at request time: `IMAGE_CACHE_DIR`, then the configured `cacheDirectory`, then `.dev/image-cache`. The environment value is not captured into the site build. CLI `warm` and `cleanup` use `IMAGE_CACHE_DIR` from the process environment or `--env-file` before the configured `cacheDirectory`; relative paths resolve against the current working directory.
+The image service resolves its cache directory at request time: `IMAGE_CACHE_DIR`, then the configured `cacheDirectory`, then `.dev/image-cache`. The environment value is not captured into the site build. CLI `warm` and `cleanup` use `IMAGE_CACHE_DIR` from the process environment or `--env-file` before the configured `cacheDirectory`; relative paths resolve against the current working directory. When neither is set, `warm` falls back to `.dev/image-cache` in the current working directory, while `cleanup` stops with `IMAGE_CACHE_DIR must be set to an existing directory.`
 
 Changing AVIF or WebP encoder settings changes `imageCacheSettings8` and therefore the cache namespace. Treat encoder changes as a cache migration: deploy the new settings, warm the new variants, then run cache cleanup.
 
