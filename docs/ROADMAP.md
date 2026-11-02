@@ -12,11 +12,13 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Release 0.3.0.** Staged publishing is in place (plan 012). The owner adds the trusted
-   publisher with "allow npm publish" unchecked and releases 0.3.0 by `docs/RELEASING.md`; the
-   configuration expires unless a publish succeeds within 2 days. Check then whether
-   `gh run rerun` on a run whose version is already staged tries to stage it again (ADR-0007
-   unknown).
+1. **Release 0.3.1.** `v0.3.0` was tagged on 2026-11-02 but not published: run
+   `41372704831` failed first with `E401` (trusted publisher owner spelling, fixed on npmjs.com
+   to `NimitzUA`), then with `E422` because `package.json` `repository.url` names `nimitzua`
+   while the provenance names `NimitzUA`. Plan 013 fixes the metadata; then the owner releases
+   0.3.1 and approves it before the trusted publisher's two days run out (added 2026-11-02
+   about 01:28 UTC). Check then whether `gh run rerun` on a run whose version is already staged
+   tries to stage it again (ADR-0007 unknown).
 2. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
    `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
