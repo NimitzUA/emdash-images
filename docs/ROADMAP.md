@@ -118,5 +118,9 @@ adopts the package on its own side.
     `focalX`/`focalY`) and `pictureModel`: AVIF and WebP sources per image, a `contentHashes`
     `Map` or own-key object, `columns` (positive integer, else 3) as `--columns`, EmDash's default
     `sizes` or a `sizes` prop, captions and placeholders, no CSS; README, SKILL.md and
-    `### Added` in `CHANGELOG.md`. The `cover` block stays on EmDash's component. Unreleased; the
-    next release is a minor.
+    `### Added` in `CHANGELOG.md`. The `cover` block stays on EmDash's component. Released in
+    0.4.0.
+16. **Release 0.4.0** (commit `78aaf81`, tag `v0.4.0`, 2026-11-02). Staged by `release.yml` run
+    `41378422497` and approved by the owner with two-factor authentication; `npm view` shows
+    `latest: '0.4.0'` with SLSA provenance. The second CI release ran through with no change to
+    the procedure.
