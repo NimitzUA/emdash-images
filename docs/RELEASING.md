@@ -13,6 +13,7 @@ Push `main` and check the first CI run:
 ```sh
 git push -u origin main
 gh run list --workflow ci.yml --limit 1
+gh run watch <run-id> --exit-status
 ```
 
 ## First release, by hand (0.2.0)
@@ -89,8 +90,9 @@ is unclear, confirm whether 0.2.0 was published before trying to publish it agai
 
 On npmjs.com, open the package settings and choose **Trusted Publisher**. Select **GitHub Actions**
 and enter owner `nimitzua`, repository `emdash-images`, workflow `release.yml`, and no environment;
-allow `npm publish`. If no publish succeeds within 2 days, the trusted publisher expires. Delete it
-and add it again before retrying.
+leave **allow npm publish** unchecked, so CI can only stage releases. The owner approves the first
+staged version within 2 days of adding the configuration. If no publish succeeds within 2 days,
+the trusted publisher expires. Delete it and add it again before retrying.
 
 After the first CI publish, you may optionally set publishing access to require two-factor
 authentication and disallow tokens.
@@ -133,19 +135,28 @@ authentication and disallow tokens.
    git push origin main vX.Y.Z
    ```
 
-   Follow the workflow run with `gh run watch` and confirm the published version:
+   Follow the workflow run and approve its staged version:
 
    ```sh
+   gh run list --workflow release.yml --limit 1
+   gh run watch <run-id> --exit-status
+   npm stage list @nimitzua/emdash-images
+   npm stage view <stage-id>
+   npm stage approve <stage-id>
    npm view @nimitzua/emdash-images version
    ```
 
-   No `npm login` or two-factor code is needed for these releases.
+   Approving requires the owner to sign in (`npm login` in the CLI, or on npmjs.com) and enter a
+   two-factor code; on npmjs.com, use **Approve** under **Staged Packages**.
 
 ## If the CI publish fails
 
 Never move or delete a pushed tag. For a configuration cause (trusted publisher missing, expired,
 or with a wrong field), fix the configuration on npmjs.com and re-run the workflow with
 `gh run rerun <run-id>`. A cause in the code becomes the next patch version.
+
+Reject a staged version that should not ship with `npm stage reject <stage-id>`. The fix becomes
+the next patch version with a new tag.
 
 ## Version numbers
 
