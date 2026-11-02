@@ -55,7 +55,7 @@ test("config options reach commands and relative cache and uploads paths resolve
 	assert.deepEqual(env, { UPLOADS_DIR: "./uploads" });
 });
 
-test("no config uses DEFAULT_IMAGE_OPTIONS and leaves an unset cacheDirectory out of warm options", async () => {
+test("no config uses DEFAULT_IMAGE_OPTIONS and gives warm the cwd cache fallback", async () => {
 	let received;
 	const result = await runCli(["cleanup"], {
 		env: {},
@@ -79,7 +79,7 @@ test("no config uses DEFAULT_IMAGE_OPTIONS and leaves an unset cacheDirectory ou
 			},
 		},
 	});
-	assert.equal(Object.hasOwn(warmOptions, "cacheDirectory"), false);
+	assert.equal(warmOptions.cacheDirectory, path.resolve(process.cwd(), ".dev/image-cache"));
 });
 
 test("a config without a default plain object returns a runtime error", async (t) => {
@@ -173,7 +173,7 @@ test("IMAGE_CACHE_DIR takes precedence over configured cacheDirectory and resolv
 	assert.deepEqual(env, { IMAGE_CACHE_DIR: " ./env-cache " });
 });
 
-test("blank config cacheDirectory stays unset and backfill resolves relative and default uploads directories", async (t) => {
+test("blank config cacheDirectory uses the cwd fallback and backfill resolves relative and default uploads directories", async (t) => {
 	const cwd = await temporaryDirectory(t);
 	await writeConfig(cwd, { cacheDirectory: "  " });
 	const env = { KEEP: "value", UPLOADS_DIR: "./content" };
@@ -190,7 +190,7 @@ test("blank config cacheDirectory stays unset and backfill resolves relative and
 			},
 		},
 	}), 0);
-	assert.equal(Object.hasOwn(warmOptions, "cacheDirectory"), false);
+	assert.equal(warmOptions.cacheDirectory, path.join(cwd, ".dev/image-cache"));
 	assert.deepEqual(env, { KEEP: "value", UPLOADS_DIR: "./content" });
 
 	assert.equal(await runCli(["cleanup", "--config", "image-options.mjs"], {
@@ -242,6 +242,7 @@ test("warm reports failures and chooses local or public site by origin options",
 	assert.equal(publicCall.requestOrigin.href, "http://request.example/");
 	assert.equal(publicCall.publicOrigin.href, "https://public.example/");
 	assert.deepEqual(publicCall.options, {
+		cacheDirectory: path.resolve(process.cwd(), ".dev/image-cache"),
 		deniedStorageKeyPrefixes: DEFAULT_IMAGE_OPTIONS.deniedStorageKeyPrefixes,
 		deniedPagePathPrefixes: DEFAULT_IMAGE_OPTIONS.deniedPagePathPrefixes,
 	});
@@ -262,6 +263,39 @@ test("warm reports failures and chooses local or public site by origin options",
 	assert.equal(originOnlyCalls, 1);
 	assert.equal(originOnlyRequest.href, "http://same.example/");
 	assert.equal(originOnlyRequest.href, originOnlyPublic.href);
+});
+
+test("warm cache fallback resolves against the CLI cwd", async (t) => {
+	const cwd = await temporaryDirectory(t);
+	let warmOptions;
+
+	assert.equal(await runCli(["warm"], {
+		cwd,
+		env: {},
+		commands: {
+			warmLocalSite: async (_env, options) => {
+				warmOptions = options;
+				return { failures: [] };
+			},
+		},
+	}), 0);
+	assert.equal(warmOptions.cacheDirectory, path.join(cwd, ".dev/image-cache"));
+});
+
+test("invalid public origin returns usage error without warming either site", async () => {
+	let warmCalls = 0;
+	const errors = [];
+	const commands = {
+		warmLocalSite: async () => { warmCalls++; return { failures: [] }; },
+		warmPublicSite: async () => { warmCalls++; return { failures: [] }; },
+	};
+
+	assert.equal(await runCli(["warm", "--origin", "https://example.com", "--public-origin", "mailto:x@example.com"], {
+		commands,
+		errorLog: (message) => errors.push(message),
+	}), 2);
+	assert.equal(warmCalls, 0);
+	assert.match(errors[0], /Option --public-origin must be an absolute http\(s\) URL\./);
 });
 
 test("help and usage errors return the documented exit codes", async () => {
