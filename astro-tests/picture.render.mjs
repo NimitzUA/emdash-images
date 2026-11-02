@@ -3,6 +3,7 @@ import { experimental_AstroContainer } from "astro/container";
 import { imageConfig } from "astro:assets";
 import { test } from "vitest";
 import Picture from "../src/Picture.astro";
+import PortableTextGallery from "../src/PortableTextGallery.astro";
 import PortableTextImage from "../src/PortableTextImage.astro";
 import imageService from "../src/service.mjs";
 
@@ -24,6 +25,10 @@ function render(props) {
 
 function renderPortableText(props) {
 	return container.renderToString(PortableTextImage, { props, request, locals });
+}
+
+function renderPortableTextGallery(props) {
+	return container.renderToString(PortableTextGallery, { props, request, locals });
 }
 
 function countMatches(value, expression) {
@@ -288,4 +293,48 @@ test("PortableTextImage uses displayWidth while keeping service URLs accepted", 
 	assert.equal(attribute(img, "width"), "400");
 	assert.equal(attribute(img, "height"), "250");
 	await assertRenderedUrlsAcceptedByService(html);
+});
+
+test("PortableTextGallery renders optimized pictures with captions", async () => {
+	const html = await renderPortableTextGallery({
+		node: {
+			_type: "gallery",
+			_key: "gallery-key",
+			columns: 2,
+			images: [
+				{
+					_type: "image",
+					_key: "a",
+					asset: { _ref: "a.jpg", url: "/_emdash/api/media/file/a.jpg", width: 1600, height: 1000 },
+					width: 1600,
+					height: 1000,
+					caption: "First caption",
+					alt: "First image",
+				},
+				{
+					_type: "image",
+					_key: "b",
+					asset: { _ref: "b.jpg", url: "/_emdash/api/media/file/b.jpg", width: 1600, height: 1000 },
+					width: 1600,
+					height: 1000,
+					alt: "Second image",
+				},
+			],
+		},
+	});
+
+	assert.equal(countMatches(html, /<div class="emdash-gallery" style="--columns: 2">/g), 1);
+	assert.equal(countMatches(html, /<figure class="emdash-gallery-item">/g), 2);
+	const pictures = [...html.matchAll(/<picture\b[^>]*>[\s\S]*?<\/picture>/g)].map(([picture]) => picture);
+	assert.equal(pictures.length, 2);
+	for (const picture of pictures) {
+		const sources = [...picture.matchAll(/<source\b[^>]*>/g)].map(([source]) => source);
+		assert.equal(sources.length, 2);
+		assert.match(sources[0], /type="image\/avif"/);
+		assert.match(sources[1], /type="image\/webp"/);
+	}
+	assert.equal(countMatches(html, /<figcaption>/g), 1);
+	assert.match(html, /<figcaption>First caption<\/figcaption>/);
+	await assertRenderedUrlsAcceptedByService(html);
+	assertNoPositionParameter(renderedImageUrls(html));
 });

@@ -1,0 +1,64 @@
+---
+import { getImage, imageConfig } from "astro:assets";
+import { portableTextGalleryModel } from "./portable-text-gallery.mjs";
+
+interface ImageAsset {
+	_ref?: string;
+	id?: string;
+	url?: string;
+	src?: string;
+	provider?: string;
+	meta?: Record<string, unknown>;
+	alt?: string;
+	width?: number;
+	height?: number;
+}
+
+interface GalleryImage {
+	asset?: ImageAsset | null;
+	alt?: string;
+	width?: number;
+	height?: number;
+	focalX?: number;
+	focalY?: number;
+	blurhash?: string;
+	dominantColor?: string;
+	caption?: string;
+}
+
+interface Props {
+	node?: { images?: GalleryImage[]; columns?: number } | null;
+	contentHashes?: Map<string, string> | Record<string, string>;
+	placeholder?: boolean;
+	sizes?: string;
+	index?: number;
+	isInline?: boolean;
+}
+
+const model = await portableTextGalleryModel(Astro.props, {
+	getImage,
+	imageConfig,
+	locals: Astro.locals,
+	url: Astro.url,
+});
+---
+
+{model && (
+	<div class="emdash-gallery" style={model.style}>
+		{model.items.map(({ caption, variants }) => (
+			<figure class="emdash-gallery-item">
+				{variants.map(({ picture, sources, img }) =>
+					picture ? (
+						<picture {...picture}>
+							{sources.map((source) => <source {...source} />)}
+							<img {...img} />
+						</picture>
+					) : (
+						<img {...img} />
+					),
+				)}
+				{caption && <figcaption>{caption}</figcaption>}
+			</figure>
+		))}
+	</div>
+)}
