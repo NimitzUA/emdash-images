@@ -133,6 +133,8 @@ test("full-width layout uses Astro full-width image attributes", async () => {
 	assert.ok(img);
 	assert.match(img, /data-astro-image="full-width"/);
 	assert.equal(attribute(img, "sizes"), "100vw");
+	await assertRenderedUrlsAcceptedByService(html);
+	assertNoPositionParameter(renderedImageUrls(html));
 });
 
 test("top-level darkVariant prop renders separate light and dark pictures", async () => {

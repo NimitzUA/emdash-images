@@ -115,6 +115,10 @@ test("imageService passes options to Astro's service config", () => {
 	});
 });
 
+test("imageService trims cacheDirectory", () => {
+	assert.equal(imageService({ cacheDirectory: " /tmp/image-cache " }).config.cacheDirectory, "/tmp/image-cache");
+});
+
 test("the image service writes and reads under IMAGE_CACHE_DIR when config omits cacheDirectory", async () => {
 	await withCacheDirectory(async (parentDirectory) => {
 		const cacheDirectory = join(parentDirectory, "env-cache");
@@ -167,6 +171,30 @@ test("IMAGE_CACHE_DIR takes precedence over a configured cacheDirectory", async 
 				"the environment cache directory receives the variant");
 			assert.deepEqual(configuredEntries, [], "the configured cache directory is not used");
 			assert.equal(encoderCalls, 1, "the second request reads the cached variant");
+		} finally {
+			if (previousCacheDirectory === undefined) delete process.env.IMAGE_CACHE_DIR;
+			else process.env.IMAGE_CACHE_DIR = previousCacheDirectory;
+		}
+	});
+});
+
+test("the image service trims a configured cacheDirectory before writing variants", async () => {
+	await withCacheDirectory(async (parentDirectory) => {
+		const cacheDirectory = join(parentDirectory, "configured-cache");
+		const previousCacheDirectory = process.env.IMAGE_CACHE_DIR;
+		delete process.env.IMAGE_CACHE_DIR;
+		try {
+			const config = { service: { config: { cacheDirectory: ` ${cacheDirectory} ` } } };
+			const service = createImageService(serviceWithEncoder(async (_input, transform) => ({
+				data: Buffer.from("encoded"),
+				format: transform.format,
+			})));
+			const url = imageRequestUrl(publicImageTransform);
+			await requestImageVariant(service, Buffer.from("original image"), url, { config });
+
+			const entries = await readdir(cacheDirectory, { recursive: true }).catch(() => []);
+			assert.ok(entries.some((entry) => String(entry).endsWith("-640.webp")),
+				"the trimmed configured cache directory receives the variant");
 		} finally {
 			if (previousCacheDirectory === undefined) delete process.env.IMAGE_CACHE_DIR;
 			else process.env.IMAGE_CACHE_DIR = previousCacheDirectory;

@@ -24,7 +24,7 @@ export function imageService(options = {}) {
 		deniedStorageKeyPrefixes: resolved.deniedStorageKeyPrefixes,
 	};
 	if (typeof options.cacheDirectory === "string" && options.cacheDirectory.trim()) {
-		config.cacheDirectory = options.cacheDirectory;
+		config.cacheDirectory = options.cacheDirectory.trim();
 	}
 	return {
 		entrypoint: "@nimitzua/emdash-images/service",
