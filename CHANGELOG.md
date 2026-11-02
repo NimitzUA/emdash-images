@@ -6,6 +6,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ### Fixed
 
+- `pictureSources()` treats a `null` `getImage` or `imageConfig` option as omitted and reads it from `astro:assets`; before, a `null` `getImage` threw and a `null` `imageConfig` used the package's default widths.
 - The image service trims a configured `cacheDirectory`, as it already trims `IMAGE_CACHE_DIR` and as the CLI does, so a path with surrounding spaces resolves to the same directory everywhere.
 
 ## [0.2.0] - 2026-11-01

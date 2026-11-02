@@ -23,7 +23,7 @@ export async function pictureSources(
 
 	let astroGetImage;
 	let astroImageConfig;
-	if (options.getImage === undefined || options.imageConfig === undefined) {
+	if (options.getImage == null || options.imageConfig == null) {
 		try {
 			const astroAssets = await import("astro:assets");
 			astroGetImage = astroAssets.getImage;
