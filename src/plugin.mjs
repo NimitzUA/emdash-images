@@ -2,7 +2,7 @@ import { definePlugin } from "emdash";
 import { scheduleImageWarmup } from "./warmup.mjs";
 
 const pluginId = "emdash-images";
-const version = "0.3.0";
+const version = "0.3.1";
 
 export function emdashImages(options = {}) {
 	return {
