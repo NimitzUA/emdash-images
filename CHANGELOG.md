@@ -4,6 +4,11 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+### Added
+
+- `PortableTextImage.astro` component (`@nimitzua/emdash-images/PortableTextImage.astro`) for EmDash's Portable Text `image` block: AVIF and WebP sources, configured widths, `contentHash`, alignment classes, link, caption and display size, with no CSS.
+- `Picture` renders the LQIP placeholder from `blurhash` or `dominantColor` by default; `placeholder={false}` turns it off. New dependency `@unpic/placeholder`.
+
 ### Fixed
 
 - `pictureSources()` treats a `null` `getImage` or `imageConfig` option as omitted and reads it from `astro:assets`; before, a `null` `getImage` threw and a `null` `imageConfig` used the package's default widths.
