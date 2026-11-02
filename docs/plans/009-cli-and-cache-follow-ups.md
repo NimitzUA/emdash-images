@@ -142,4 +142,28 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`.
+- **Merge:** `29c6a40` (`--no-ff` of `task/009-cli-and-cache-follow-ups` onto `188c4de`). Task
+  commits: T1 `60254b0` (review 1 PASS, no findings), T2 `984615c` (review 1 PASS, no
+  findings). No fix rounds. Gates: `GATES OK`; `RELEASE OK 0.2.0` from the worktree's
+  `scripts/release.mjs`; `git diff main -- src/warmup.mjs src/layout.mjs src/index.d.mts package.json package-lock.json`
+  empty. Lockfile unchanged, so no install on main; `VERIFY OK`. Tests: `test/cli.test.mjs`
+  `pass 11`, `test/service.test.mjs` `pass 34`, vitest `9 passed`. `version` stays `0.2.0`;
+  nothing tagged, pushed or published.
+- **Decisions:** No executor questions; no plan amendments.
+- **Surprises:**
+  - The CLI `--public-origin` check already existed (`src/cli.mjs:111-121`), so T1's new
+    invalid-`--public-origin` test passes on the old code too; it is coverage, as the plan asked.
+  - A blank-after-trim service-config `cacheDirectory` now falls through to
+    `options.cacheDirectory` (before, `" "` was truthy and became a path of spaces under cwd);
+    this is the plan's "blank value falls through". On the old code T2's variant test would
+    leave a directory named ` ` under cwd.
+  - `scripts/release.mjs` resolves its root from its own location, not from cwd; the plan gate
+    "in the worktree" is met by running the worktree's copy.
+- **Deviations:** None.
+- **Follow-ups:**
+  - `README.md` «Options» (line 45) does not name the CLI `warm` fallback to
+    `<cwd>/.dev/image-cache` (T1 review 1 note; outside T1 Ownership).
+  - The plan 004 edge cases kept by plan 005 stay open (`getImage: null` with an `imageConfig`,
+    `picture` `{}`, the repeated `astro:assets` import under `node --test`).
+  - T2's `### Fixed` entry under `## Unreleased` makes the next release a patch at least.
+- **Proposed rules:** None: the run had no findings.

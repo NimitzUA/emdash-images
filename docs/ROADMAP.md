@@ -12,9 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Small `Picture` follow-ups from plan 005.** The `full-width` render case without the URL
-   helper, and the edge cases kept from plan 004; details in plan
-   005's Outcome, Follow-ups. None blocks 0.2.0.
+1. **Small `Picture` follow-ups from plan 005.** The edge cases kept from plan 004 (`getImage:
+   null` with an `imageConfig`, `picture` `{}`, the repeated `astro:assets` import under
+   `node --test`); details in plan 005's Outcome, Follow-ups. The `full-width` URL check is done
+   in plan 009.
 2. **Trusted publisher.** The owner's step right before the second release:
    `docs/RELEASING.md` «Trusted publisher»; the configuration expires unless a publish succeeds
    within 2 days.
@@ -23,10 +24,8 @@ adopts the package on its own side.
    and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. That ADR also
    answers ADR-0004's open question (a content-hash lookup without the site's help), since the
    guard too reads EmDash's `media` table directly.
-4. **Small CLI follow-ups from plan 002.** A unit test for a valid `--origin` with an invalid
-   `--public-origin`; `warm`'s `.dev/image-cache` fallback resolves against `process.cwd()`, not
-   `runCli`'s `cwd`; the CLI trims config `cacheDirectory` while the service does not. Details in
-   plan 002's Outcome, Follow-ups.
+4. **README: name the CLI `warm` fallback.** `README.md` «Options» (line 45) does not say that
+   `warm` falls back to `<cwd>/.dev/image-cache`; plan 009's Outcome, Follow-ups.
 5. **Portable Text images and the placeholder.** ADR-0004 «Next»: a Portable
    Text image block component on the same code as `Picture`, and the LQIP placeholder.
 
@@ -81,3 +80,8 @@ adopts the package on its own side.
    `package.json` without `version` reports only `Missing version at package.json`;
    `docs/RELEASING.md` records the by-hand 0.2.0 on 2026-11-01, the expected `E404` of its tag
    run, and how to choose `X.Y.Z` from `## Unreleased`. No package behaviour change.
+9. **CLI and cache-path follow-ups — plan 009** (merge `29c6a40`). `warm` falls back to
+   `.dev/image-cache` under `runCli`'s `cwd`; the image service trims a configured
+   `cacheDirectory` (`imageService()` and `getCacheDirectory`, a blank value falls through) —
+   `### Fixed` under `## Unreleased`; tests for an invalid `--public-origin` and the
+   `full-width` render URLs. Unreleased.
