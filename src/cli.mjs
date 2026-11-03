@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseArgs, parseEnv } from "node:util";
 import { pathToFileURL } from "node:url";
 import { backfillMediaRows, cleanupImageCache } from "./maintenance.mjs";
+import { resolveDatabaseEnvironment } from "./maintenance-database.mjs";
 import { DEFAULT_IMAGE_OPTIONS } from "./options.mjs";
 import { warmLocalSite, warmPublicSite } from "./warmup.mjs";
 
@@ -142,10 +143,10 @@ export async function runCli(argv, {
 
 		const selectedCommands = { ...DEFAULT_COMMANDS, ...commands };
 		if (command === "backfill") {
-			const backfillEnv = {
+			const backfillEnv = resolveDatabaseEnvironment({
 				...commandEnv,
 				UPLOADS_DIR: path.resolve(cwd, nonBlankString(commandEnv.UPLOADS_DIR) ?? "uploads"),
-			};
+			}, cwd);
 			const result = await selectedCommands.backfillMediaRows({
 				args: parsed.values.write ? ["--write"] : [],
 				env: backfillEnv,
@@ -156,9 +157,10 @@ export async function runCli(argv, {
 
 		if (command === "cleanup") {
 			const cacheDirectory = resolveCacheDirectory(commandEnv, imageOptions, cwd);
-			const cleanupEnv = cacheDirectory === undefined
+			const cleanupCommandEnv = cacheDirectory === undefined
 				? commandEnv
 				: { ...commandEnv, IMAGE_CACHE_DIR: cacheDirectory };
+			const cleanupEnv = resolveDatabaseEnvironment(cleanupCommandEnv, cwd);
 			await selectedCommands.cleanupImageCache({
 				args: parsed.values.delete ? ["--delete"] : [],
 				env: cleanupEnv,

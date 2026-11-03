@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { Kysely } from "kysely";
 import { DEFAULT_IMAGE_OPTIONS } from "../src/options.mjs";
 import { runCli } from "../src/cli.mjs";
 
@@ -80,6 +81,130 @@ test("no config uses DEFAULT_IMAGE_OPTIONS and gives warm the cwd cache fallback
 		},
 	});
 	assert.equal(warmOptions.cacheDirectory, path.resolve(process.cwd(), ".dev/image-cache"));
+});
+
+test("database URL paths resolve against cwd for backfill and cleanup", async (t) => {
+	const cwd = await temporaryDirectory(t);
+	const absoluteDatabasePath = path.join(cwd, "data", "absolute.db");
+	const cases = [
+		{
+			env: { DATABASE_URL: "file:./data/emdash.db" },
+			variable: "DATABASE_URL",
+			value: `file:${path.join(cwd, "data", "emdash.db")}`,
+		},
+		{
+			env: { DATABASE_URL: "", EMDASH_DATABASE_URL: "file:./data/emdash.db" },
+			variable: "EMDASH_DATABASE_URL",
+			value: `file:${path.join(cwd, "data", "emdash.db")}`,
+		},
+		{
+			env: { DATABASE_URL: "postgres://user:secret@db.example/emdash" },
+			variable: "DATABASE_URL",
+			value: "postgres://user:secret@db.example/emdash",
+		},
+		{
+			env: { DATABASE_URL: `file:${absoluteDatabasePath}` },
+			variable: "DATABASE_URL",
+			value: `file:${absoluteDatabasePath}`,
+		},
+	];
+
+	for (const command of ["backfill", "cleanup"]) {
+		for (const { env, variable, value } of cases) {
+			const originalEnv = { ...env };
+			const receivedEnv = await captureMaintenanceEnvironment(command, { cwd, env });
+			assert.equal(receivedEnv[variable], value, `${command} ${variable}`);
+			assert.deepEqual(env, originalEnv, `${command} does not mutate its caller’s environment`);
+		}
+	}
+
+	await writeFile(path.join(cwd, ".env"), "DATABASE_URL=file:./data/emdash.db\n");
+	for (const command of ["backfill", "cleanup"]) {
+		const receivedEnv = await captureMaintenanceEnvironment(command, { cwd, args: ["--env-file", ".env"] });
+		assert.equal(receivedEnv.DATABASE_URL, `file:${path.join(cwd, "data", "emdash.db")}`);
+	}
+});
+
+test("backfill and cleanup run end-to-end with a relative SQLite database URL", async (t) => {
+	const cwd = await temporaryDirectory(t);
+	const databasePath = path.join(cwd, "data", "emdash.db");
+	const uploadsDirectory = path.join(cwd, "uploads");
+	const cacheDirectory = path.join(cwd, "image-cache");
+	await Promise.all([
+		mkdir(path.dirname(databasePath), { recursive: true }),
+		mkdir(uploadsDirectory),
+		mkdir(cacheDirectory),
+	]);
+	const { default: sharp } = await import("sharp");
+	const bytes = await sharp({
+		create: { width: 2, height: 1, channels: 3, background: { r: 211, g: 74, b: 91 } },
+	}).png().toBuffer();
+	await writeFile(path.join(uploadsDirectory, "photo.png"), bytes);
+	const [{ createDialect }, { runMigrations }] = await Promise.all([
+		import("emdash/db/sqlite"),
+		import("emdash/db"),
+	]);
+	const setupDatabase = new Kysely({ dialect: createDialect({ url: databasePath }) });
+	try {
+		await runMigrations(setupDatabase);
+		await setupDatabase.insertInto("media").values({
+			id: "cli-backfill-image",
+			filename: "photo.png",
+			mime_type: "image/png",
+			size: bytes.length,
+			storage_key: "photo.png",
+			content_hash: null,
+			width: null,
+			height: null,
+			blurhash: null,
+			dominant_color: null,
+			status: "ready",
+		}).execute();
+	} finally {
+		await setupDatabase.destroy();
+	}
+
+	const env = {
+		DATABASE_URL: "file:./data/emdash.db",
+		UPLOADS_DIR: "./uploads",
+		IMAGE_CACHE_DIR: "./image-cache",
+	};
+	const errors = [];
+	const cliOptions = { cwd, env, log: () => undefined, errorLog: (message) => errors.push(String(message)) };
+	assert.equal(await runCli(["backfill", "--write"], cliOptions), 0);
+	const database = new Kysely({ dialect: createDialect({ url: databasePath }) });
+	try {
+		const [row] = await database.selectFrom("media").selectAll().where("id", "=", "cli-backfill-image").execute();
+		assert.ok(row.content_hash);
+		assert.equal(row.width, 2);
+		assert.equal(row.height, 1);
+		assert.ok(row.blurhash);
+		assert.ok(row.dominant_color);
+	} finally {
+		await database.destroy();
+	}
+	assert.equal(await runCli(["cleanup"], cliOptions), 0);
+	assert.deepEqual(env, {
+		DATABASE_URL: "file:./data/emdash.db",
+		UPLOADS_DIR: "./uploads",
+		IMAGE_CACHE_DIR: "./image-cache",
+	});
+	assert.deepEqual(errors, []);
+});
+
+test("unsupported database URL schemes report SQLite and PostgreSQL without credentials", async () => {
+	const errors = [];
+	const result = await runCli(["backfill"], {
+		env: { DATABASE_URL: "mysql://user:secret@db.example/emdash" },
+		log: () => undefined,
+		errorLog: (message) => errors.push(String(message)),
+	});
+
+	assert.equal(result, 1);
+	assert.equal(errors.length, 1);
+	assert.match(errors[0], /SQLite/);
+	assert.match(errors[0], /PostgreSQL/);
+	assert.doesNotMatch(errors[0], /secret/);
 });
 
 test("a config without a default plain object returns a runtime error", async (t) => {
@@ -341,6 +466,23 @@ async function temporaryDirectory(t) {
 	const directory = await mkdtemp(path.join(os.tmpdir(), "emdash-images-cli-"));
 	t.after(() => rm(directory, { recursive: true, force: true }));
 	return directory;
+}
+
+async function captureMaintenanceEnvironment(command, { cwd, env = {}, args = [] }) {
+	let receivedEnv;
+	const commands = command === "backfill"
+		? {
+			backfillMediaRows: async (options) => {
+				receivedEnv = options.env;
+				return { exitCode: 0 };
+			},
+		}
+		: {
+			cleanupImageCache: async (options) => { receivedEnv = options.env; },
+		};
+	const result = await runCli([command, ...args], { cwd, env, commands });
+	assert.equal(result, 0, command);
+	return receivedEnv;
 }
 
 async function writeConfig(directory, options) {

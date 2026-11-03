@@ -1,6 +1,5 @@
 import { lstat, readdir, realpath, rmdir, unlink } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
 
 import {
 	contentHashVersion,
@@ -10,6 +9,7 @@ import {
 	imageVariantCachePath,
 } from "./layout.mjs";
 import { DEFAULT_IMAGE_OPTIONS } from "./options.mjs";
+import { maintenanceDatabase } from "./maintenance-database.mjs";
 
 const usage = "Usage: emdash-images cleanup [--delete] | --help";
 const TEMP_FILE_MAX_AGE_MS = 60 * 60 * 1000;
@@ -101,21 +101,6 @@ export async function validateCacheDirectory(value) {
 		throw new TypeError("IMAGE_CACHE_DIR must not be the filesystem root.");
 	}
 	return resolvedPath;
-}
-
-function databaseConfig(env) {
-	const connectionString = env.DATABASE_URL || env.EMDASH_DATABASE_URL;
-	if (connectionString) return { connectionString };
-	if (!env.PGDATABASE || !env.PGUSER || !env.PGHOST) {
-		throw new Error("Set DATABASE_URL or the PGHOST, PGDATABASE, and PGUSER variables.");
-	}
-	return {
-		host: env.PGHOST,
-		port: Number(env.PGPORT || 5432),
-		database: env.PGDATABASE,
-		user: env.PGUSER,
-		password: env.PGPASSWORD,
-	};
 }
 
 async function listRegularFiles(cacheDirectory) {
@@ -319,7 +304,8 @@ function normalizeDeniedStorageKeyPrefixes(prefixes) {
 export async function cleanupImageCache({
 	args = [],
 	env = process.env,
-	pool: suppliedPool,
+	database: suppliedDatabase,
+	pool,
 	now = Date.now(),
 	log = console.log,
 	listCacheFiles = listRegularFiles,
@@ -335,12 +321,17 @@ export async function cleanupImageCache({
 	const imageConfig = { service: { config: encoder } };
 	const deniedPrefixes = normalizeDeniedStorageKeyPrefixes(deniedStorageKeyPrefixes);
 	const settings8 = imageCacheSettings8(imageConfig);
-	const pool = suppliedPool ?? new Pool(databaseConfig(env));
+	const maintenance = await maintenanceDatabase({ database: suppliedDatabase, pool, env });
+	const { database } = maintenance;
 
 	try {
 		const beforeFiles = await listCacheFiles(cacheDirectory);
-		const beforeRows = await pool.query("SELECT id, status, storage_key, content_hash FROM media ORDER BY id");
-		const before = inspectCacheSnapshot(cacheDirectory, beforeFiles, beforeRows.rows ?? [], settings8, imageConfig, deniedPrefixes, now);
+		const beforeRows = await database
+			.selectFrom("media")
+			.select(["id", "status", "storage_key", "content_hash"])
+			.orderBy("id")
+			.execute();
+		const before = inspectCacheSnapshot(cacheDirectory, beforeFiles, beforeRows, settings8, imageConfig, deniedPrefixes, now);
 		let deletedFiles = 0;
 		if (deleteFiles) {
 			for (const candidate of before.candidates) {
@@ -354,8 +345,12 @@ export async function cleanupImageCache({
 		let after = before;
 		if (deleteFiles) {
 			const afterFiles = await listCacheFiles(cacheDirectory);
-			const afterRows = await pool.query("SELECT id, status, storage_key, content_hash FROM media ORDER BY id");
-			after = inspectCacheSnapshot(cacheDirectory, afterFiles, afterRows.rows ?? [], settings8, imageConfig, deniedPrefixes, now);
+			const afterRows = await database
+				.selectFrom("media")
+				.select(["id", "status", "storage_key", "content_hash"])
+				.orderBy("id")
+				.execute();
+			after = inspectCacheSnapshot(cacheDirectory, afterFiles, afterRows, settings8, imageConfig, deniedPrefixes, now);
 		}
 		const summary = {
 			mode: deleteFiles ? "delete" : "dry run",
@@ -373,6 +368,6 @@ export async function cleanupImageCache({
 		printSummary(summary, log);
 		return summary;
 	} finally {
-		if (!suppliedPool) await pool.end();
+		await maintenance.close();
 	}
 }

@@ -4,6 +4,15 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+### Added
+
+- `emdash-images backfill` and `cleanup` work with SQLite: a `file:` `DATABASE_URL` or `EMDASH_DATABASE_URL`, resolved against the current directory.
+
+### Changed
+
+- `backfillMediaRows` and `cleanupImageCache` take `database`, a Kysely instance, in place of `pool`; passing `pool` throws and `MaintenancePool` is removed.
+- `pg` is no longer a dependency: PostgreSQL maintenance uses EmDash's dialect and its optional `pg`; `kysely` is a peer dependency.
+
 ## [0.4.0] - 2026-11-02
 
 ### Added

@@ -4,7 +4,7 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
 ## Steps
 
-1. **Install from npm.** Run `npm install @nimitzua/emdash-images`. Check that the site uses EmDash 1.3, Astro 7, and Node 26 or later. The package needs its `astro`, `emdash`, and `sharp` peer dependencies; `pg` is installed as a package dependency.
+1. **Install from npm.** Run `npm install @nimitzua/emdash-images`. Check that the site uses EmDash 1.3, Astro 7, and Node 26 or later. The package needs its `astro`, `emdash`, and `sharp` peer dependencies; `kysely` is a peer dependency shared with EmDash, and PostgreSQL maintenance uses `pg` from EmDash.
 
 2. **Keep site options in one module.** Create or update `src/lib/image-options.mjs` with a default-exported options object. Set `deniedStorageKeyPrefixes` to storage-key prefixes (for example, `restricted/`) and `deniedPagePathPrefixes` to private page paths (for example, `/private`). They are separate settings. The package defaults both lists to empty. Import the same module as a default in `astro.config.mjs` and pass its path to CLI commands with `--config`.
 
@@ -46,7 +46,7 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
 7. **Make the package available in the runtime image.** Ensure the installed package is present in the runtime image's `node_modules` tree. Set `IMAGE_CACHE_DIR` in the runtime environment to the image cache directory.
 
-8. **Backfill, then warm twice.** Run `npx emdash-images backfill --config ./src/lib/image-options.mjs` in dry-run mode and review it, then add `--write` to fill missing media metadata. The site must be running, and the `warm` command's environment or `--env-file` must carry the same valid `PORT` or `SITE_PORT` the site listens on; otherwise pass `--origin`. Run `npx emdash-images warm --config ./src/lib/image-options.mjs` twice. The first run may generate variants; the second should report `Generated: 0` and no failures.
+8. **Backfill, then warm twice.** Run `npx emdash-images backfill --config ./src/lib/image-options.mjs` in dry-run mode and review it, then add `--write` to fill missing media metadata. Backfill and cleanup read the database from `DATABASE_URL` (or `EMDASH_DATABASE_URL`), such as a SQLite `file:./data/emdash.db` URL run from the site's root, or from the `PG*` variables; these can come from the environment or `--env-file`. The site must be running, and the `warm` command's environment or `--env-file` must carry the same valid `PORT` or `SITE_PORT` the site listens on; otherwise pass `--origin`. Run `npx emdash-images warm --config ./src/lib/image-options.mjs` twice. The first run may generate variants; the second should report `Generated: 0` and no failures.
 
 9. **Review cache cleanup before deleting.** Run `npx emdash-images cleanup --config ./src/lib/image-options.mjs`, inspect its dry-run report, then rerun with `--delete` when the candidates are expected. Encoder changes create a new cache namespace.
 
