@@ -4,6 +4,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 
 ## Unreleased
 
+## [0.5.0] - 2026-11-03
+
 ### Added
 
 - `emdash-images backfill` and `cleanup` work with SQLite: a `file:` `DATABASE_URL` or `EMDASH_DATABASE_URL`, resolved against the current directory.

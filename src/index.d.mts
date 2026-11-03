@@ -23,7 +23,7 @@ export declare function imageService(options?: Partial<ImageServiceOptions>): {
 
 export interface EmdashImagesDescriptor {
 	id: "emdash-images";
-	version: "0.4.0";
+	version: "0.5.0";
 	format: "native";
 	entrypoint: "@nimitzua/emdash-images/plugin";
 	capabilities: ["content:read"];
