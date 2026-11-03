@@ -12,19 +12,8 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Release 0.5.0.** Plans 015 and 016 in one minor (owner, 2026-11-03), with the ADR-0007
-   check in item 2. Kit follow-up: `scripts/orca/review.sh` line 65 should read
-   `result.taskId` (plans 015 and 016 «Outcome»).
-2. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
-   staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
-   the `registry` step of `release.yml` finds the published version and skips `npm ci` and
-   `npm stage publish`. Check it deliberately at the next release (owner decision,
-   2026-11-02): after the `Release` run stages the version and before approving it, run
-   `gh run rerun <run-id>` and `gh run watch <run-id> --exit-status`, then
-   `npm stage list @nimitzua/emdash-images`. Record whether the re-run failed, staged nothing
-   new, or added a second stage; reject a duplicate stage with `npm stage reject <stage-id>`
-   and approve the other. Then write the result into ADR-0007 and, if it changes the
-   procedure, `docs/RELEASING.md` «If the CI publish fails».
+1. **Kit follow-up.** `scripts/orca/review.sh` line 65 should read `result.taskId` (plans 015
+   and 016 «Outcome»); a change in the orca-setup kit and a re-render, by the owner.
 
 ## Out of scope
 
@@ -135,7 +124,7 @@ adopts the package on its own side.
     exist); `pg` left `dependencies` and `kysely` `^0.29.0` is a peer dependency;
     `./maintenance` takes `database` (a Kysely instance) and refuses `pool`;
     `MaintenancePool` removed. README, SKILL.md and `### Added`/`### Changed` in
-    `CHANGELOG.md`. Unreleased; the next release is a minor (0.5.0).
+    `CHANGELOG.md`. Released in 0.5.0.
 18. **Content-hash lookup and plan 015 follow-ups — plan 016** (merge `822d1a5`). ADR-0009's
     lookup half: root export `loadContentHashes(emdash, ids)` returns a `Map` of media id to
     `content_hash` for `ready` media with a non-blank hash, one query per 500 ids, an empty map
@@ -143,4 +132,9 @@ adopts the package on its own side.
     README, SKILL.md and `### Added` document it in place of a site-owned query. Plan 015
     follow-ups closed: tests for a directory as `file:` path and for the close in `backfill` and
     `cleanup`; README names `file:./…` and `file:/…` (no `file://` or percent-decoding);
-    `### Changed` notes upper-case `IMAGE/…` rows. Unreleased; the next release is 0.5.0.
+    `### Changed` notes upper-case `IMAGE/…` rows. Released in 0.5.0.
+19. **Release 0.5.0** (commit `b1ad085`, tag `v0.5.0`, 2026-11-03). Plans 015 and 016. Staged
+    by attempt 1 of `release.yml` run `41688012824` and approved by the owner; `npm view` shows
+    `latest: '0.5.0'`. ADR-0007's re-run point checked: attempt 2, run before approval, failed
+    at `npm stage publish` with `E409` and staged nothing new; recorded in ADR-0007 and
+    `docs/RELEASING.md` «If the CI publish fails».

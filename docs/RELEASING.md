@@ -160,6 +160,10 @@ Never move or delete a pushed tag. For a configuration cause (trusted publisher 
 or with a wrong field), fix the configuration on npmjs.com and re-run the workflow with
 `gh run rerun <run-id>`. A cause in the code becomes the next patch version.
 
+Re-run only a run that staged nothing. Once a run has staged a version, a re-run fails at
+`npm stage publish` with `E409` ("Cannot stage previously published version") and stages
+nothing new (ADR-0007, checked at 0.5.0); approve or reject the version already staged instead.
+
 Reject a staged version that should not ship with `npm stage reject <stage-id>`. The fix becomes
 the next patch version with a new tag.
 

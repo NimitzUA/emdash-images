@@ -65,6 +65,14 @@ release.
 - Unknowns are checked at that release: whether approving counts as the first successful
   publish for the two-day expiry, and how a re-run behaves while a version is staged (the
   registry skip step sees only published versions). A surprise becomes a fix plan.
+- Re-run checked at 0.5.0 (2026-11-03): after attempt 1 of `release.yml` run `41688012824`
+  staged 0.5.0 and before the owner approved it, `gh run rerun 41688012824` ran attempt 2.
+  The registry skip step did not see the staged version (`npm view` still showed `latest`
+  0.4.0), so attempt 2 ran `npm ci` and `npm stage publish`, which signed a second provenance
+  statement and then failed with `E409`: "Cannot stage previously published version "0.5.0"."
+  No second stage was created; the owner approved the one from attempt 1. A re-run while a
+  version is staged is therefore harmless and useless: it fails and changes nothing. No fix
+  plan is needed.
 
 ## Alternatives
 
