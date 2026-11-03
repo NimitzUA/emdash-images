@@ -1,18 +1,11 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
 import { computeContentHash } from "emdash";
+import { maintenanceDatabase } from "./maintenance-database.mjs";
 
 const usage = "Usage: emdash-images backfill [--write]";
 const metadataFields = ["width", "height", "blurhash", "dominant_color"];
 const backfillFields = ["content_hash", ...metadataFields];
-const emptyFieldPredicates = {
-	content_hash: "(content_hash IS NULL OR content_hash = '')",
-	width: "width IS NULL",
-	height: "height IS NULL",
-	blurhash: "(blurhash IS NULL OR blurhash = '')",
-	dominant_color: "(dominant_color IS NULL OR dominant_color = '')",
-};
 
 export function storageFilePath(uploadsDirectory, storageKey) {
 	if (typeof storageKey !== "string" || !storageKey || storageKey.includes("\\")) {
@@ -43,21 +36,6 @@ export function parseArguments(args) {
 		throw new TypeError(usage);
 	}
 	return { write };
-}
-
-function databaseConfig(env) {
-	const connectionString = env.DATABASE_URL || env.EMDASH_DATABASE_URL;
-	if (connectionString) return { connectionString };
-	if (!env.PGDATABASE || !env.PGUSER || !env.PGHOST) {
-		throw new Error("Set DATABASE_URL or the PGHOST, PGDATABASE, and PGUSER variables.");
-	}
-	return {
-		host: env.PGHOST,
-		port: Number(env.PGPORT || 5432),
-		database: env.PGDATABASE,
-		user: env.PGUSER,
-		password: env.PGPASSWORD,
-	};
 }
 
 async function listCandidate(row, uploadsDirectory, deniedPrefixes) {
@@ -160,12 +138,18 @@ async function readCandidateUpdates(candidate) {
 	return updates;
 }
 
-async function fillMissingField(pool, candidate, field, value) {
-	const update = await pool.query(
-		`UPDATE media SET ${field} = $1 WHERE id = $2 AND storage_key = $3 AND status = 'ready' AND ${emptyFieldPredicates[field]}`,
-		[value, candidate.id, candidate.storageKey],
-	);
-	return update.rowCount === 1;
+async function fillMissingField(database, candidate, field, value) {
+	const update = await database
+		.updateTable("media")
+		.set({ [field]: value })
+		.where("id", "=", candidate.id)
+		.where("storage_key", "=", candidate.storageKey)
+		.where("status", "=", "ready")
+		.where((eb) => field === "width" || field === "height"
+			? eb(field, "is", null)
+			: eb.or([eb(field, "is", null), eb(field, "=", "")]))
+		.executeTakeFirst();
+	return update.numUpdatedRows === 1n;
 }
 
 function normalizeDeniedStorageKeyPrefixes(prefixes) {
@@ -189,7 +173,8 @@ function isDeniedStorageKey(key, deniedPrefixes) {
 export async function backfillMediaRows({
 	args = [],
 	env = process.env,
-	pool: suppliedPool,
+	database: suppliedDatabase,
+	pool,
 	deniedStorageKeyPrefixes = [],
 	log = console.log,
 	errorLog = console.error,
@@ -197,15 +182,28 @@ export async function backfillMediaRows({
 	const { write } = parseArguments(args);
 	const uploadsDirectory = path.resolve(env.UPLOADS_DIR?.trim() || "uploads");
 	const deniedPrefixes = normalizeDeniedStorageKeyPrefixes(deniedStorageKeyPrefixes);
-	const pool = suppliedPool ?? new Pool(databaseConfig(env));
+	const maintenance = await maintenanceDatabase({ database: suppliedDatabase, pool, env });
+	const { database } = maintenance;
 	try {
-		const result = await pool.query(
-			"SELECT id, storage_key, size, mime_type, content_hash, width, height, blurhash, dominant_color FROM media WHERE status = 'ready' AND ((content_hash IS NULL OR content_hash = '') OR (mime_type LIKE 'image/%' AND lower(storage_key) <> ALL($1::text[]) AND NOT EXISTS (SELECT 1 FROM unnest($2::text[]) AS denied(prefix) WHERE left(lower(storage_key), char_length(denied.prefix)) = denied.prefix) AND (width IS NULL OR height IS NULL OR blurhash IS NULL OR blurhash = '' OR dominant_color IS NULL OR dominant_color = ''))) ORDER BY id",
-			[deniedPrefixes, deniedPrefixes.map((prefix) => `${prefix}/`)],
-		);
+		const rows = await database
+			.selectFrom("media")
+			.select(["id", "storage_key", "size", "mime_type", "content_hash", "width", "height", "blurhash", "dominant_color"])
+			.where("status", "=", "ready")
+			.where((eb) => eb.or([
+				eb("content_hash", "is", null),
+				eb("content_hash", "=", ""),
+				eb("width", "is", null),
+				eb("height", "is", null),
+				eb("blurhash", "is", null),
+				eb("blurhash", "=", ""),
+				eb("dominant_color", "is", null),
+				eb("dominant_color", "=", ""),
+			]))
+			.orderBy("id")
+			.execute();
 		log(`Content hash and image metadata backfill (${write ? "write" : "dry run"})`);
 		const candidates = [];
-		for (const row of result.rows) {
+		for (const row of rows.filter((entry) => missingFields(entry, deniedPrefixes).length > 0)) {
 			const candidate = await listCandidate(row, uploadsDirectory, deniedPrefixes);
 			candidates.push(candidate);
 			log(`id=${JSON.stringify(candidate.id)} storage_key=${JSON.stringify(candidate.storageKey)} size=${candidate.size ?? "unknown"} missing_fields=${candidate.missingFields.join(",")}${candidate.missing ? " missing-file" : ""}`);
@@ -269,7 +267,7 @@ export async function backfillMediaRows({
 		let skipped = 0;
 		for (const [candidate, updates] of updatesByCandidate) {
 			for (const [field, value] of Object.entries(updates)) {
-				if (await fillMissingField(pool, candidate, field, value)) filledByField[field]++;
+				if (await fillMissingField(database, candidate, field, value)) filledByField[field]++;
 				else skipped++;
 			}
 		}
@@ -288,6 +286,6 @@ export async function backfillMediaRows({
 			exitCode: failures.length > 0 ? 3 : 0,
 		};
 	} finally {
-		if (!suppliedPool) await pool.end();
+		await maintenance.close();
 	}
 }

@@ -1,17 +1,9 @@
 import type { Kysely } from "kysely";
 
-export interface MaintenancePool {
-	query(sql: string, values?: unknown[]): Promise<{
-		rows?: Record<string, unknown>[];
-		rowCount?: number | null;
-	}>;
-	end?(): Promise<void>;
-}
-
 export interface BackfillMediaRowsOptions {
 	args?: string[];
 	env?: Record<string, string | undefined>;
-	pool?: MaintenancePool;
+	database?: Kysely<any>;
 	deniedStorageKeyPrefixes?: readonly string[];
 	log?: (line: string) => void;
 	errorLog?: (line: string) => void;

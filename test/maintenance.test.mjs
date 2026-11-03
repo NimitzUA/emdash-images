@@ -10,48 +10,6 @@ import { backfillMediaRows, cleanupImageCache } from "@nimitzua/emdash-images/ma
 import { hashStoredMediaFile, parseArguments } from "../src/backfill.mjs";
 import { assertPathInsideCache, validateCacheDirectory } from "../src/cleanup.mjs";
 
-function deniedStorageKey(key, prefixes) {
-	const normalizedKey = key.toLowerCase();
-	return prefixes.some((prefix) => {
-		const normalizedPrefix = prefix.replace(/\/+$/, "").toLowerCase();
-		return normalizedKey === normalizedPrefix || normalizedKey.startsWith(`${normalizedPrefix}/`);
-	});
-}
-
-function createBackfillPool(rows) {
-	const queries = [];
-	return {
-		rows,
-		queries,
-		async query(sql, values = []) {
-			queries.push({ sql, values });
-			if (sql.startsWith("SELECT")) {
-				const [deniedPrefixes = []] = values;
-				return { rows: rows.filter((row) => row.status === "ready" && (
-					row.content_hash == null || row.content_hash === "" || (
-						row.mime_type?.toLowerCase().startsWith("image/") &&
-						!deniedStorageKey(row.storage_key, deniedPrefixes) && (
-							row.width == null || row.height == null || row.blurhash == null || row.blurhash === "" ||
-							row.dominant_color == null || row.dominant_color === ""
-						)
-					)
-				)) };
-			}
-			const field = /UPDATE media SET ([a-z_]+) = \$1/.exec(sql)?.[1];
-			assert.ok(field, `unexpected backfill update: ${sql}`);
-			const [value, id, storageKey] = values;
-			const row = rows.find((candidate) => candidate.id === id && candidate.storage_key === storageKey && candidate.status === "ready");
-			if (!row) return { rowCount: 0 };
-			const missing = field === "width" || field === "height"
-				? row[field] == null
-				: row[field] == null || row[field] === "";
-			if (!missing) return { rowCount: 0 };
-			row[field] = value;
-			return { rowCount: 1 };
-		},
-	};
-}
-
 function imageRow(id, storageKey, extra = {}) {
 	return {
 		id,
@@ -92,6 +50,10 @@ async function createCleanupDatabase(directory, rows = []) {
 				size: row.size ?? null,
 				storage_key: row.storage_key,
 				content_hash: row.content_hash ?? null,
+				width: row.width ?? null,
+				height: row.height ?? null,
+				blurhash: row.blurhash ?? null,
+				dominant_color: row.dominant_color ?? null,
 				status: row.status ?? "ready",
 			}))).execute();
 		}
@@ -102,7 +64,47 @@ async function createCleanupDatabase(directory, rows = []) {
 	}
 }
 
-test("backfill uses denied prefixes for SQL selection and metadata while preserving hash candidates", async (t) => {
+async function createBackfillDatabase(directory, rows = []) {
+	await mkdir(directory, { recursive: true });
+	return createCleanupDatabase(directory, rows);
+}
+
+async function readMediaRows(database) {
+	return database.selectFrom("media").selectAll().orderBy("id").execute();
+}
+
+async function createRecordingPostgresDatabase({ rows = [] } = {}) {
+	const compiledQueries = [];
+	const driver = {
+		async init() {},
+		async acquireConnection() {
+			return {
+				async executeQuery(query) {
+					compiledQueries.push(query);
+					if (/^select/i.test(query.sql)) return { rows };
+					return { numAffectedRows: 1n };
+				},
+				async *streamQuery() {},
+			};
+		},
+		async beginTransaction() {},
+		async commitTransaction() {},
+		async rollbackTransaction() {},
+		async releaseConnection() {},
+		async destroy() {},
+	};
+	const database = new Kysely({
+		dialect: {
+			createAdapter: () => new PostgresAdapter(),
+			createDriver: () => driver,
+			createQueryCompiler: () => new PostgresQueryCompiler(),
+			createIntrospector: (db) => new PostgresIntrospector(db),
+		},
+	});
+	return { database, compiledQueries };
+}
+
+test("backfill applies denied prefixes before listing candidates while preserving hash candidates", async (t) => {
 	const directory = await mkdtemp(path.join(tmpdir(), "image-backfill-prefixes-"));
 	t.after(() => rm(directory, { recursive: true, force: true }));
 	const { default: sharp } = await import("sharp");
@@ -129,12 +131,13 @@ test("backfill uses denied prefixes for SQL selection and metadata while preserv
 		imageRow("private-dot-segment", "Private-Cases/./x.png"),
 		imageRow("private-dotdot-segment", "private-cases/../x.png"),
 	];
-	const pool = createBackfillPool(rows);
+	const { database } = await createCleanupDatabase(directory, rows);
+	t.after(() => database.destroy());
 	const output = [];
 	const result = await backfillMediaRows({
 		args: [],
 		env: { UPLOADS_DIR: directory },
-		pool,
+		database,
 		deniedStorageKeyPrefixes: ["private-cases/"],
 		log: (line) => output.push(String(line)),
 		errorLog: () => undefined,
@@ -150,19 +153,16 @@ test("backfill uses denied prefixes for SQL selection and metadata while preserv
 	assert.equal(result.found, 7);
 	assert.equal(result.missing, 4);
 	assert.equal(result.failed, 4);
-	assert.match(pool.queries[0].sql, /unnest\(\$2::text\[\]\)/);
-	assert.doesNotMatch(pool.queries[0].sql, /private-cases/i);
-	assert.deepEqual(pool.queries[0].values, [["private-cases"], ["private-cases/"]]);
 	assert.deepEqual(
 		output.filter((line) => line.startsWith("id=")).map((line) => line.match(/^id="([^"]+)"/)?.[1]),
 		[
-			"public",
-			"private-path",
 			"private-case-variant",
-			"private-empty-segment",
-			"private-trailing-slash",
 			"private-dot-segment",
 			"private-dotdot-segment",
+			"private-empty-segment",
+			"private-path",
+			"private-trailing-slash",
+			"public",
 		],
 	);
 	assert.ok(output.some((line) => line.includes('id="private-path"') && line.includes("missing_fields=content_hash")));
@@ -182,6 +182,129 @@ test("backfill uses denied prefixes for SQL selection and metadata while preserv
 	assert.ok(!output.some((line) => line.includes('id="private-bare-key"')));
 });
 
+test("backfill queries compile for PostgreSQL without dialect-specific SQL", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-backfill-postgres-compile-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const uploadsDirectory = path.join(directory, "uploads");
+	await mkdir(path.join(uploadsDirectory, "work"), { recursive: true });
+	const bytes = Buffer.from("postgres recording driver backfill candidate");
+	await writeFile(path.join(uploadsDirectory, "work/file.bin"), bytes);
+	const row = imageRow("postgres-recording", "work/file.bin", {
+		mime_type: "application/octet-stream",
+		size: bytes.length,
+		width: 1,
+		height: 1,
+		blurhash: "stored",
+		dominant_color: "#000000",
+	});
+	const { database, compiledQueries } = await createRecordingPostgresDatabase({ rows: [row] });
+	try {
+		await backfillMediaRows({
+			args: [],
+			env: { UPLOADS_DIR: uploadsDirectory },
+			database,
+			log: () => undefined,
+			errorLog: () => undefined,
+		});
+		assert.equal(compiledQueries.length, 1);
+		await backfillMediaRows({
+			args: ["--write"],
+			env: { UPLOADS_DIR: uploadsDirectory },
+			database,
+			log: () => undefined,
+			errorLog: () => undefined,
+		});
+		assert.equal(compiledQueries.length, 3);
+		for (const query of compiledQueries) {
+			assert.doesNotMatch(query.sql, /unnest|::|char_length|left\(/i);
+			assert.doesNotMatch(query.sql, /\?/);
+			assert.equal([...query.sql.matchAll(/\$\d+/g)].length, query.parameters.length);
+		}
+	} finally {
+		await database.destroy();
+	}
+});
+
+test("backfill skips a selected row when its storage key changes before write", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-backfill-changed-row-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const uploadsDirectory = path.join(directory, "uploads");
+	await mkdir(path.join(uploadsDirectory, "work"), { recursive: true });
+	const bytes = Buffer.from("selected before its storage key changes");
+	await writeFile(path.join(uploadsDirectory, "work/photo.png"), bytes);
+	const row = imageRow("changed-storage-key", "work/photo.png", {
+		size: bytes.length,
+		width: 2,
+		height: 1,
+		blurhash: "stored",
+		dominant_color: "#000000",
+	});
+	const { database, databasePath } = await createBackfillDatabase(directory, [row]);
+	t.after(() => database.destroy());
+	const { DatabaseSync } = await import("node:sqlite");
+	const secondConnection = new DatabaseSync(databasePath);
+	t.after(() => secondConnection.close());
+	const output = [];
+	const result = await backfillMediaRows({
+		args: ["--write"],
+		env: { UPLOADS_DIR: uploadsDirectory },
+		database,
+		log: (line) => {
+			output.push(String(line));
+			if (line === "Rows needing backfill: 1") {
+				secondConnection.prepare("UPDATE media SET storage_key = ? WHERE id = ?").run("work/changed.png", row.id);
+			}
+		},
+		errorLog: () => undefined,
+	});
+	assert.equal(result.filled, 0);
+	assert.equal(result.skipped, 1);
+	assert.ok(output.includes("Skipped because rows changed: 1"));
+	const persisted = await readMediaRows(database);
+	assert.equal(persisted[0].storage_key, "work/changed.png");
+	assert.equal(persisted[0].content_hash, null);
+});
+
+test("backfill opens and closes a file URL database", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-backfill-file-url-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const uploadsDirectory = path.join(directory, "uploads");
+	await mkdir(path.join(uploadsDirectory, "work"), { recursive: true });
+	const { default: sharp } = await import("sharp");
+	const bytes = await sharp({ create: { width: 2, height: 1, channels: 3, background: { r: 211, g: 74, b: 91 } } }).png().toBuffer();
+	await writeFile(path.join(uploadsDirectory, "work/photo.png"), bytes);
+	const { database, databasePath } = await createBackfillDatabase(directory, [
+		imageRow("file-url-row", "work/photo.png", { size: bytes.length }),
+	]);
+	await database.destroy();
+	const result = await backfillMediaRows({
+		args: ["--write"],
+		env: { UPLOADS_DIR: uploadsDirectory, DATABASE_URL: `file:${databasePath}` },
+		log: () => undefined,
+		errorLog: () => undefined,
+	});
+	assert.equal(result.filled, 5);
+	const { createDialect } = await import("emdash/db/sqlite");
+	const reopenedDatabase = new Kysely({ dialect: createDialect({ url: databasePath }) });
+	try {
+		const [persisted] = await readMediaRows(reopenedDatabase);
+		assert.equal(persisted.content_hash, await computeContentHash(bytes));
+		assert.equal(persisted.width, 2);
+		assert.equal(persisted.height, 1);
+		assert.ok(persisted.blurhash);
+		assert.ok(persisted.dominant_color);
+	} finally {
+		await reopenedDatabase.destroy();
+	}
+});
+
+test("backfill refuses the removed pool option", async () => {
+	await assert.rejects(
+		backfillMediaRows({ args: [], pool: {} }),
+		(error) => error instanceof TypeError && /database/.test(error.message),
+	);
+});
+
 test("backfill hashes stored files and rejects paths outside uploads", async (t) => {
 	const uploadsDirectory = await mkdtemp(path.join(tmpdir(), "media-hash-backfill-"));
 	t.after(() => rm(uploadsDirectory, { recursive: true, force: true }));
@@ -197,11 +320,13 @@ test("backfill counts directory storage keys as failed rows", async (t) => {
 	t.after(() => rm(uploadsDirectory, { recursive: true, force: true }));
 	await mkdir(path.join(uploadsDirectory, "work", "folder"), { recursive: true });
 	const row = imageRow("directory-storage-key", "work/folder");
+	const { database } = await createCleanupDatabase(uploadsDirectory, [row]);
+	t.after(() => database.destroy());
 	const errors = [];
 	const result = await backfillMediaRows({
 		args: [],
 		env: { UPLOADS_DIR: uploadsDirectory },
-		pool: createBackfillPool([row]),
+		database,
 		log: () => undefined,
 		errorLog: (line) => errors.push(String(line)),
 	});
@@ -211,7 +336,7 @@ test("backfill counts directory storage keys as failed rows", async (t) => {
 	assert.equal(result.failed, 1);
 	assert.equal(result.exitCode, 3);
 	assert.equal(result.wouldFill, 0);
-	assert.equal(row.content_hash, null);
+	assert.equal((await readMediaRows(database))[0].content_hash, null);
 	assert.match(errors[0], /directory-storage-key.*original file is not a regular file/);
 });
 
@@ -230,19 +355,21 @@ test("backfill fills empty fields once, keeps dry runs read-only, and isolates f
 	await writeFile(path.join(directory, "work/photo.png"), bytes);
 	const freshRow = () => imageRow("media-backfill-image", "work/photo.png", { size: bytes.length });
 	const output = [];
-	const writePool = createBackfillPool([freshRow()]);
+	const { database: writeDatabase } = await createBackfillDatabase(path.join(directory, "write"), [freshRow()]);
+	t.after(() => writeDatabase.destroy());
 	const writeResult = await backfillMediaRows({
 		args: ["--write"],
 		env: { UPLOADS_DIR: directory },
-		pool: writePool,
+		database: writeDatabase,
 		log: (line) => output.push(String(line)),
 		errorLog: () => undefined,
 	});
-	assert.equal(writePool.rows[0].content_hash, await computeContentHash(bytes));
-	assert.equal(writePool.rows[0].width, 2);
-	assert.equal(writePool.rows[0].height, 1);
-	assert.ok(writePool.rows[0].blurhash);
-	assert.ok(writePool.rows[0].dominant_color);
+	const writtenRows = await readMediaRows(writeDatabase);
+	assert.equal(writtenRows[0].content_hash, await computeContentHash(bytes));
+	assert.equal(writtenRows[0].width, 2);
+	assert.equal(writtenRows[0].height, 1);
+	assert.ok(writtenRows[0].blurhash);
+	assert.ok(writtenRows[0].dominant_color);
 	assert.equal(writeResult.exitCode, 0);
 	assert.deepEqual(writeResult.filledByField, {
 		content_hash: 1,
@@ -256,7 +383,7 @@ test("backfill fills empty fields once, keeps dry runs read-only, and isolates f
 	const secondWrite = await backfillMediaRows({
 		args: ["--write"],
 		env: { UPLOADS_DIR: directory },
-		pool: writePool,
+		database: writeDatabase,
 		log: (line) => output.push(String(line)),
 		errorLog: () => undefined,
 	});
@@ -271,15 +398,19 @@ test("backfill fills empty fields once, keeps dry runs read-only, and isolates f
 
 	const dryRow = freshRow();
 	const unchangedDryRow = structuredClone(dryRow);
-	const dryPool = createBackfillPool([dryRow]);
+	const { database: dryDatabase } = await createBackfillDatabase(path.join(directory, "dry"), [dryRow]);
+	t.after(() => dryDatabase.destroy());
 	const dryResult = await backfillMediaRows({
 		args: [],
 		env: { UPLOADS_DIR: directory },
-		pool: dryPool,
+		database: dryDatabase,
 		log: (line) => output.push(String(line)),
 		errorLog: () => undefined,
 	});
-	assert.deepEqual(dryPool.rows[0], unchangedDryRow);
+	const dryRows = await readMediaRows(dryDatabase);
+	for (const field of ["id", "storage_key", "mime_type", "size", "status", "content_hash", "width", "height", "blurhash", "dominant_color"]) {
+		assert.equal(dryRows[0][field], unchangedDryRow[field]);
+	}
 	assert.deepEqual(dryResult.wouldFillByField, {
 		content_hash: 1,
 		width: 1,
@@ -300,36 +431,40 @@ test("backfill fills empty fields once, keeps dry runs read-only, and isolates f
 		height: null,
 	};
 	const partialOutput = [];
-	const partialPool = createBackfillPool([partialRow]);
+	const { database: partialDatabase } = await createBackfillDatabase(path.join(directory, "partial"), [partialRow]);
+	t.after(() => partialDatabase.destroy());
 	const partialResult = await backfillMediaRows({
 		args: ["--write"],
 		env: { UPLOADS_DIR: directory },
-		pool: partialPool,
+		database: partialDatabase,
 		log: (line) => partialOutput.push(String(line)),
 		errorLog: () => undefined,
 	});
-	assert.equal(partialPool.rows[0].content_hash, await computeContentHash(bytes));
-	assert.equal(partialPool.rows[0].width, 640);
-	assert.equal(partialPool.rows[0].height, null);
-	assert.ok(partialPool.rows[0].blurhash);
-	assert.ok(partialPool.rows[0].dominant_color);
+	const partialRows = await readMediaRows(partialDatabase);
+	assert.equal(partialRows[0].content_hash, await computeContentHash(bytes));
+	assert.equal(partialRows[0].width, 640);
+	assert.equal(partialRows[0].height, null);
+	assert.ok(partialRows[0].blurhash);
+	assert.ok(partialRows[0].dominant_color);
 	assert.equal(partialResult.filledByField.width, 0);
 	assert.equal(partialResult.filledByField.height, 0);
 	assert.ok(partialOutput.some((line) => line.includes("skipped: one dimension stored") && line.includes(partialRow.id)));
 
 	const corruptBytes = Buffer.from("not a decodable image");
 	await writeFile(path.join(directory, "work/corrupt.png"), corruptBytes);
-	const badRowsPool = createBackfillPool([
+	const badRows = [
 		freshRow(),
 		{ ...freshRow(), id: "corrupt-image-row", storage_key: "work/corrupt.png", size: corruptBytes.length },
 		{ ...freshRow(), id: "missing-image-row", storage_key: "work/missing.png" },
-	]);
+	];
+	const { database: badRowsDatabase } = await createBackfillDatabase(path.join(directory, "bad-rows"), badRows);
+	t.after(() => badRowsDatabase.destroy());
 	const failedOutput = [];
 	const errors = [];
 	const failedResult = await backfillMediaRows({
 		args: ["--write"],
 		env: { UPLOADS_DIR: directory },
-		pool: badRowsPool,
+		database: badRowsDatabase,
 		log: (line) => failedOutput.push(String(line)),
 		errorLog: (line) => errors.push(String(line)),
 	});
@@ -338,18 +473,19 @@ test("backfill fills empty fields once, keeps dry runs read-only, and isolates f
 	assert.ok(failedOutput.includes("Failed rows: 2"));
 	assert.ok(errors.some((line) => line.includes("corrupt-image-row") && line.includes("work/corrupt.png")));
 	assert.ok(errors.some((line) => line.includes("missing-image-row") && line.includes("work/missing.png")));
-	const goodRow = badRowsPool.rows.find((row) => row.id === "media-backfill-image");
+	const persistedBadRows = await readMediaRows(badRowsDatabase);
+	const goodRow = persistedBadRows.find((row) => row.id === "media-backfill-image");
 	assert.equal(goodRow.content_hash, await computeContentHash(bytes));
 	assert.equal(goodRow.width, 2);
 	assert.equal(goodRow.height, 1);
 	assert.ok(goodRow.blurhash);
 	assert.ok(goodRow.dominant_color);
 	for (const rowId of ["corrupt-image-row", "missing-image-row"]) {
-		const row = badRowsPool.rows.find((candidate) => candidate.id === rowId);
+		const row = persistedBadRows.find((candidate) => candidate.id === rowId);
 		assert.equal(row.content_hash, null, `${rowId} remains unmodified`);
 		assert.equal(row.width, null, `${rowId} dimensions remain unmodified`);
 	}
-	await assert.rejects(backfillMediaRows({ args: ["--invalid"], pool: writePool }), /Usage/);
+	await assert.rejects(backfillMediaRows({ args: ["--invalid"], database: writeDatabase }), /Usage/);
 });
 
 test("cleanup rejects unset, root, symlink, and escaping cache paths", async (t) => {
