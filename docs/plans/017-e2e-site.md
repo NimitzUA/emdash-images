@@ -101,6 +101,7 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
 
 - **Target:** `e2e/site/astro.config.mjs`, `e2e/site/src/live.config.ts`,
   `e2e/site/src/lib/image-options.mjs`, `e2e/site/src/lib/outer-middleware.mjs`,
+  `e2e/site/src/lib/portable-text-image.astro`, `e2e/site/src/lib/portable-text-gallery.astro`,
   `e2e/site/src/pages/posts/[slug].astro` (all new), `e2e/harness.mjs` (new),
   `e2e/site.e2e.mjs` (new), `package.json`, `package-lock.json`, `.gitignore`.
 - **Change:**
@@ -125,9 +126,10 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
     missing), calls `loadContentHashes(Astro.locals.emdash, ids)` once with the ids of the
     `hero` field and of every image and gallery image in `body`, renders `hero` with
     `Picture` (`contentHash` from the map) and `body` with EmDash's `PortableText` from
-    `emdash/ui`, its `image` and `gallery` types replaced by small wrappers or inline
-    components that pass the map's hash (`contentHash` / `contentHashes`) to
-    `PortableTextImage` and `PortableTextGallery`, as `README.md` «Portable Text images» shows.
+    `emdash/ui`, its `image` and `gallery` types replaced by the wrappers
+    `src/lib/portable-text-image.astro` and `src/lib/portable-text-gallery.astro`, which pass
+    the map's hash (`contentHash` / `contentHashes`) to `PortableTextImage` and
+    `PortableTextGallery`, as `README.md` «Portable Text images» shows.
   - `e2e/harness.mjs` exports `buildSite()`, which links the package if needed and runs Astro's
     programmatic `build({ root })` for `e2e/site`.
   - `e2e/site.e2e.mjs` has a first test "the fixture site builds" that calls `buildSite()` and
@@ -272,7 +274,11 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
 
 ## Amendments
 
-None.
+- 2026-11-03, T1: Target names the Portable Text wrappers
+  `e2e/site/src/lib/portable-text-image.astro` and `e2e/site/src/lib/portable-text-gallery.astro`;
+  Change drops "or inline components". Astro cannot define a component inside a page, and the
+  README shows the wrappers as separate files; the executor asked for them (msg
+  `msg_3f286c7c12ab`).
 
 ## Outcome
 
