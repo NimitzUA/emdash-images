@@ -62,8 +62,7 @@ case "$action" in
     out=$(orca terminal wait --terminal "$term" --for tui-idle --timeout-ms 300000 --json 2>&1)
     [ "$(field "$out" result.wait.satisfied)" = "True" ] || fail "terminal wait (terminal=$term)" "$out"
     out=$(orca orchestration task-create --spec "$what" --json 2>&1)
-    # Orca 1.4.247 answers result.taskId; earlier versions answered result.task.id.
-    id=$(field "$out" result.taskId || field "$out" result.task.id) || fail "task-create (terminal=$term)" "$out"
+    id=$(field "$out" result.taskId) || fail "task-create (terminal=$term)" "$out"
     out=$(orca orchestration worker-start --task "$id" --terminal "$term" --worktree "path:$wt" --json 2>&1)
     dispatch=$(field "$out" result.dispatchId) || fail "worker-start (terminal=$term task=$id)" "$out"
     git -C "$wt" rev-parse HEAD >"$run/.review-$term.head" 2>/dev/null
