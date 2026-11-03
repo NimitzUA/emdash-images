@@ -16,7 +16,11 @@ adopts the package on its own side.
    `Map` of media id to `content_hash` in one query per batch, for `Picture` and
    `PortableTextGallery`; answers ADR-0004's open question. Independent of plan 015.
 2. **Plan 015 follow-ups.** `file://localhost/…` and percent-encoded `file:` URLs are taken
-   raw; the non-regular-file branch of `openMaintenanceDatabase` has no test; the backfill
+   raw, as EmDash's own `sqlite({ url })` takes them: keep the code, and `README.md` names the
+   supported forms `file:./…` and `file:/…` (owner, 2026-11-03). The two missing tests below and a `## Unreleased` `CHANGELOG.md` line
+   saying that `backfill` now also fills rows with an upper-case `IMAGE/…` MIME type go into
+   plan 016 as its last task (owner, 2026-11-03). Release 0.5.0 after plan 016, with both
+   plans in one minor (owner, 2026-11-03). The non-regular-file branch of `openMaintenanceDatabase` has no test; the backfill
    `file:` URL test does not prove the close. See plan 015 «Outcome».
 3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
