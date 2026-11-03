@@ -22,13 +22,16 @@ Use this when wiring the package into an EmDash site. The package is a trusted n
 
    ```astro
    ---
+   import { loadContentHashes } from "@nimitzua/emdash-images";
    import Picture from "@nimitzua/emdash-images/Picture.astro";
+   const contentHashes = await loadContentHashes(Astro.locals.emdash, [entry.data.featured_image?.id]);
+   const featuredImageContentHash = contentHashes.get(entry.data.featured_image?.id);
    ---
 
    <Picture image={entry.data.featured_image} contentHash={featuredImageContentHash} sizes="(min-width: 60rem) 50vw, 100vw" />
    ```
 
-   The component does not query for the hash. Fetch `content_hash` for the page's media IDs in one site-owned query and pass the matching value; without it, generated URLs are unversioned. Astro's `image.remotePatterns` must allow `/_emdash/api/media/file/**` for EmDash media paths.
+   The component does not query for the hash. Call `loadContentHashes` once per page with its media IDs and pass each matching value; it returns only `ready` rows with a hash, uses one query per 500 IDs, and returns an empty map when there is no database. Without a valid hash, generated URLs are unversioned. Astro's `image.remotePatterns` must allow `/_emdash/api/media/file/**` for EmDash media paths.
 
    For Portable Text, replace the `image` and `gallery` blocks on EmDash's `PortableText` with `PortableTextImage.astro` and `PortableTextGallery.astro`:
 

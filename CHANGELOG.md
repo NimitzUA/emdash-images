@@ -7,6 +7,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 ### Added
 
 - `emdash-images backfill` and `cleanup` work with SQLite: a `file:` `DATABASE_URL` or `EMDASH_DATABASE_URL`, resolved against the current directory.
+- `loadContentHashes(emdash, ids)` returns a `Map` from media id to `content_hash` for `ready` media in one query per 500 ids, to version `Picture`, `PortableTextImage` and `PortableTextGallery` URLs without a site-owned query.
 
 ### Changed
 
