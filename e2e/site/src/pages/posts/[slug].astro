@@ -1,0 +1,40 @@
+---
+import { getEmDashEntry } from "emdash";
+import { PortableText } from "emdash/ui";
+import { loadContentHashes } from "@nimitzua/emdash-images";
+import Picture from "@nimitzua/emdash-images/Picture.astro";
+import PortableTextImageWithHash from "../../lib/portable-text-image.astro";
+import PortableTextGalleryWithHashes from "../../lib/portable-text-gallery.astro";
+
+const slug = Astro.params.slug;
+if (!slug) return new Response(null, { status: 404 });
+
+const { entry } = await getEmDashEntry("posts", slug);
+if (!entry) return new Response(null, { status: 404 });
+
+const hero = entry.data.hero;
+const body = Array.isArray(entry.data.body) ? entry.data.body : [];
+const bodyImageIds = body.flatMap((block) => {
+	if (block?._type === "image") return [block.asset?._ref];
+	if (block?._type === "gallery" && Array.isArray(block.images)) {
+		return block.images.map((image) => image?.asset?._ref);
+	}
+	return [];
+});
+const contentHashes = await loadContentHashes(Astro.locals.emdash, [hero?.id, ...bodyImageIds]);
+(Astro.locals as typeof Astro.locals & { imageHashes?: Map<string, string> }).imageHashes = contentHashes;
+---
+
+<main>
+	<h1>{entry.data.title}</h1>
+	<Picture image={hero} contentHash={contentHashes.get(hero?.id)} sizes="100vw" />
+	<PortableText
+		value={body}
+		components={{
+			type: {
+				image: PortableTextImageWithHash,
+				gallery: PortableTextGalleryWithHashes,
+			},
+		}}
+	/>
+</main>

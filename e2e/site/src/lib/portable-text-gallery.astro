@@ -1,0 +1,9 @@
+---
+import PortableTextGallery from "@nimitzua/emdash-images/PortableTextGallery.astro";
+
+const imageHashes = (Astro.locals as typeof Astro.locals & {
+	imageHashes?: Map<string, string>;
+}).imageHashes;
+---
+
+<PortableTextGallery {...Astro.props} contentHashes={imageHashes} />
