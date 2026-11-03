@@ -205,23 +205,28 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
 
 ### T3: Run backfill, warm-up and cleanup against the fixture site
 
-- **Target:** `e2e/site.e2e.mjs`, `e2e/harness.mjs` (helpers only).
-- **Change:** `e2e/site.e2e.mjs` adds, after T2's tests and on the same running server and
-  data:
-  - "backfill versions the page's image URLs": runs `node src/bin.mjs backfill --write` with
-    `DATABASE_URL=file:<absolute .data database>` and `UPLOADS_DIR=<absolute .data uploads>`;
-    exit code 0 and the output line `Failed rows: 0`; then `GET /posts/hello` again: every
-    generated `/_image` URL now carries `v=` with 16 lower-case hex characters, equal to the
-    first 16 hex characters of that media row's `content_hash` read from the database.
-  - "a versioned variant is immutable": one versioned URL is 200 with `Cache-Control`
-    `public, max-age=31536000, immutable`.
-  - "warm-up generates once and then serves from cache": `warmPublicSite(origin, origin,
-    { cacheDirectory, deniedStorageKeyPrefixes: ["restricted/"] })` from
-    `@nimitzua/emdash-images/warmup` twice; the first has `failures` `[]` and `variants` > 0;
-    the second has `failures` `[]` and `generated` 0.
-  - "cleanup finds nothing to delete in a fresh cache": runs `node src/bin.mjs cleanup` (dry
-    run) with the same `DATABASE_URL` and `IMAGE_CACHE_DIR`; exit code 0 and the output line
-    `Candidates: 0 files, 0 bytes`.
+- **Target:** `e2e/site.e2e.mjs`, `e2e/harness.mjs` (helpers only),
+  `e2e/site/src/pages/index.astro` (new).
+- **Change:**
+  - `e2e/site/src/pages/index.astro`: a minimal home page that answers 200 with a link to
+    `/posts/hello` and no images. `warmPublicSite` always fetches `/` and counts a non-OK
+    answer as a failure (`src/warmup.mjs:298`, `:372-374`).
+  - `e2e/site.e2e.mjs` adds, after T2's tests and on the same running server and data:
+    - "backfill versions the page's image URLs": runs `node src/bin.mjs backfill --write`
+      with `DATABASE_URL=file:<absolute .data database>` and `UPLOADS_DIR=<absolute .data
+      uploads>`; exit code 0 and the output line `Failed rows: 0`; then `GET /posts/hello`
+      again: every generated `/_image` URL now carries `v=` with 16 lower-case hex
+      characters, equal to the first 16 hex characters of that media row's `content_hash`
+      read from the database.
+    - "a versioned variant is immutable": one versioned URL is 200 with `Cache-Control`
+      `public, max-age=31536000, immutable`.
+    - "warm-up generates once and then serves from cache": `warmPublicSite(origin, origin,
+      { cacheDirectory, deniedStorageKeyPrefixes: ["restricted/"] })` from
+      `@nimitzua/emdash-images/warmup` twice; the first has `failures` `[]` and `variants` >
+      0; the second has `failures` `[]` and `generated` 0.
+    - "cleanup finds nothing to delete in a fresh cache": runs `node src/bin.mjs cleanup`
+      (dry run) with the same `DATABASE_URL` and `IMAGE_CACHE_DIR`; exit code 0 and the
+      output line `Candidates: 0 files, 0 bytes`.
 - **Constraints:** as T2. The commands run as a site owner would run them (`src/bin.mjs` with
   environment variables), not through internal functions. If warm-up cannot find the post
   through `/sitemap.xml`, `ask` before changing anything else.
@@ -279,6 +284,10 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
   Change drops "or inline components". Astro cannot define a component inside a page, and the
   README shows the wrappers as separate files; the executor asked for them (msg
   `msg_3f286c7c12ab`).
+- 2026-11-04, T3: Target gains `e2e/site/src/pages/index.astro`, a minimal home page.
+  `warmPublicSite` always fetches `/` and fails on a non-OK answer (`src/warmup.mjs:298`,
+  `:372-374`); the fixture had no home page, so warm-up failed with `page / returned HTTP 404`
+  (msg `msg_ea2735510f65`).
 
 ## Outcome
 
