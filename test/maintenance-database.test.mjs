@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { lstat, mkdtemp, rm } from "node:fs/promises";
+import { lstat, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -103,6 +103,23 @@ test("openMaintenanceDatabase rejects a missing file without creating it", async
 		(error) => error.message.includes(missingPath),
 	);
 	await assert.rejects(lstat(missingPath), { code: "ENOENT" });
+});
+
+test("openMaintenanceDatabase rejects an existing directory without changing it", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "maintenance-database-directory-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const before = await lstat(directory);
+	const entriesBefore = await readdir(directory);
+
+	await assert.rejects(
+		openMaintenanceDatabase({ DATABASE_URL: `file:${directory}` }),
+		/SQLite database path is not a regular file/,
+	);
+
+	const after = await lstat(directory);
+	assert.equal(after.ino, before.ino);
+	assert.equal(after.isDirectory(), true);
+	assert.deepEqual(await readdir(directory), entriesBefore);
 });
 
 test("maintenanceDatabase refuses pool and invalid supplied database options", async () => {

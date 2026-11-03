@@ -258,6 +258,7 @@ test("backfill opens and closes a file URL database", async (t) => {
 		errorLog: () => undefined,
 	});
 	assert.equal(result.filled, 5);
+	await assert.rejects(lstat(`${databasePath}-wal`), { code: "ENOENT" });
 	const { createDialect } = await import("emdash/db/sqlite");
 	const reopenedDatabase = new Kysely({ dialect: createDialect({ url: databasePath }) });
 	try {
@@ -270,6 +271,20 @@ test("backfill opens and closes a file URL database", async (t) => {
 	} finally {
 		await reopenedDatabase.destroy();
 	}
+});
+
+test("cleanup opens and closes a file URL database", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-cleanup-file-url-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const cacheDirectory = path.join(directory, "cache");
+	await mkdir(cacheDirectory);
+	const { database, databasePath } = await createCleanupDatabase(directory);
+	await database.destroy();
+	await cleanupImageCache({
+		env: { IMAGE_CACHE_DIR: cacheDirectory, DATABASE_URL: `file:${databasePath}` },
+		log: () => undefined,
+	});
+	await assert.rejects(lstat(`${databasePath}-wal`), { code: "ENOENT" });
 });
 
 test("backfill refuses the removed pool option", async () => {
