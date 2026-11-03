@@ -4,8 +4,8 @@
 # turns that each re-read the architect's whole context.
 # Usage:
 #   ./scripts/orca/review.sh start <NNN-slug> T<n> <k>
-#       opens a fresh reviewer terminal in the plan worktree, waits until it is idle, creates the
-#       review task for RUN/T<n>.review-<k>.spec.md and dispatches it. Last line:
+#       opens a fresh reviewer terminal in the plan worktree, waits until it is idle, starts the
+#       review task for RUN/T<n>.review-<k>.spec.md on it. Last line:
 #       REVIEW STARTED terminal=<handle> dispatch=<id>
 #   ./scripts/orca/review.sh finish <NNN-slug> <terminal> <dispatch>
 #       after the reviewer's worker_done: releases the dispatch, closes the terminal and prints `git status --porcelain` of the worktree. Last line: REVIEW FINISHED,
@@ -61,10 +61,10 @@ case "$action" in
     term=$(field "$out" result.terminal.handle) || fail "terminal create" "$out"
     out=$(orca terminal wait --terminal "$term" --for tui-idle --timeout-ms 300000 --json 2>&1)
     [ "$(field "$out" result.wait.satisfied)" = "True" ] || fail "terminal wait (terminal=$term)" "$out"
-    out=$(orca orchestration task-create --spec "$what" --json 2>&1)
-    id=$(field "$out" result.taskId) || fail "task-create (terminal=$term)" "$out"
-    out=$(orca orchestration worker-start --task "$id" --terminal "$term" --worktree "path:$wt" --json 2>&1)
-    dispatch=$(field "$out" result.dispatchId) || fail "worker-start (terminal=$term task=$id)" "$out"
+    # One call creates the task in the bound Run and dispatches it to the reviewer's terminal.
+    out=$(orca orchestration worker-start --spec "$what" --task-title "$title" --terminal "$term" \
+      --worktree "path:$wt" --json 2>&1)
+    dispatch=$(field "$out" result.dispatchId) || fail "worker-start (terminal=$term)" "$out"
     git -C "$wt" rev-parse HEAD >"$run/.review-$term.head" 2>/dev/null
     echo "REVIEW STARTED terminal=$term dispatch=$dispatch"
     ;;

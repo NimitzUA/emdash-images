@@ -116,10 +116,9 @@ and `question`, so heartbeats never wake you), runs `orca-watch.sh` after each e
 `worker-list` after three, and returns within 50 minutes, before your prompt cache expires. Its
 first line says why:
 
-- `WAIT MESSAGES`: a batch with a `deliveryId` follows. Process every message in it (answer,
-  release, update `status.md`; a heartbeat needs nothing), then wait again with
-  `./scripts/orca/wait.sh <NNN-slug> --ack <deliveryId>`: an unacknowledged batch comes back and
-  hides newer mail.
+- `WAIT MESSAGES`: a batch follows, already marked handled; it is not shown again. Process every
+  message in it (answer, release, update `status.md`; a heartbeat needs nothing), then run
+  `wait.sh` again. Lost a batch? `orca orchestration inbox --terminal run:<run_id> --limit 50`.
 - `WAIT WORKERS`: rows that need action follow, with their `nextAction`. Act on them;
   `unverifiable` liveness is absence of news, never a reason to stop, retry or release a worker.
 - `WAIT QUIET`: nothing happened; a watch snapshot follows. Run `wait.sh` again.

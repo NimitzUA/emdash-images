@@ -10,19 +10,15 @@ When your prompt starts with an Orca preamble carrying Task and Dispatch ids:
   Never create or remove worktrees. The preamble and this section hold every Orca command you
   need: do not load Orca skills (`orca skills get`; the Codex rules refuse it) or read
   `orca … --help` (read 342 times in 403 executor sessions).
-- Ask the architect with the preamble's `ask` command when the plan leaves a decision open.
-  Do not guess and do not wait at a local prompt nobody can answer. The answer arrives in the
-  `ask` output. Keep the preamble's `--timeout-ms 600000`; after a timeout run
-  `orca orchestration ask --resume <message_id> --timeout-ms 600000`.
+- Ask the architect with the preamble's `ask` command when the plan leaves a decision open,
+  then end your turn: Orca wakes you with the answer. Do not guess, do not wait at a local
+  prompt nobody can answer, and do not poll for the answer.
 - `ask` is the only message that gets an answer: send no `--type status` or `--type escalation`
   message (a reply to one never reaches you, and nobody waits for a status). Your progress is the
   checklist and the worktree comment.
-- These rules replace the preamble's cadence for `check`: run it only right before your commit
-  and right before `worker_done`, never to wait or poll; an answer you wait for arrives in `ask`.
-  Acknowledge each batch with `--ack <deliveryId>` until `count` is 0: an unacknowledged batch
-  replays and hides newer mail. (Executors ran 3,824 checks, half of them less than a minute
-  apart, and acknowledged 4.)
-- If `check`, `send` or `ask` returns `consumer_fenced`, this terminal no longer owns the task:
+- Do not run `orca orchestration check`: answers and the architect's messages reach you when
+  Orca wakes you. (In plans 015 and 016 executors still ran it, with flags it does not take.)
+- If `send` or `ask` returns `consumer_fenced`, this terminal no longer owns the task:
   stop, send no `worker_done` and retry nothing.
 - The architect's answer is binding. If it does not work, `ask` again with the reason; do not
   take another route on your own.
@@ -35,7 +31,7 @@ When your prompt starts with an Orca preamble carrying Task and Dispatch ids:
   `orca orchestration` call fail, and retyping it from the preamble or from `printenv` went
   wrong in practice. Write `--from "$ORCA_TERMINAL_HANDLE"` (and
   `--terminal "$ORCA_TERMINAL_HANDLE"`) and let the shell fill it in. Copy the other ids
-  from the preamble exactly. Never add `--run` to `orchestration check`.
+  from the preamble exactly.
 - Put the text you pass to `orca` (`--question`, `--body`, `--comment`) in single quotes and
   write an apostrophe inside it as `’`: in double quotes a backtick or `$(` runs as a shell
   command and the text arrives mangled. Quote a URL with `?` or `&` the same way: zsh reads
@@ -43,9 +39,8 @@ When your prompt starts with an Orca preamble carrying Task and Dispatch ids:
 - Keep the checklist at the task's progress path, one line per Acceptance item; when you tick an
   item, set `orca worktree set --worktree current --comment "T<n> · step k/n · <what>"` once
   (not for every command: executors set it 1,294 times). Send
-  heartbeats at the cadence the preamble sets, with its command and the `--phase` you are in;
-  skip them while blocked in `ask`, and stop before `worker_done`. A heartbeat shows you are
-  alive, not done: the checklist and the worktree comment still carry the progress.
+  heartbeats only if the preamble gives a heartbeat command, at its cadence; the checklist and
+  the worktree comment carry the progress.
 - Read and search files with `rg`, `sed -n '<a>,<b>p'`, `cat` or `nl`, piped among themselves as
   you need: inside the sandbox they ask nobody.
 - Change files with `apply_patch`; one patch may touch several places in several files. A

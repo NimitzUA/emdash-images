@@ -3,26 +3,24 @@
 # The architect's wait for a running plan. Every turn of the architect re-reads its whole context,
 # so an empty wake is the most expensive thing in a run: this script waits for it, and returns
 # only when there is something to do or before the prompt cache (one hour) runs out.
-# Usage: ./scripts/orca/wait.sh <NNN-slug> [--ack <deliveryId>]
+# Usage: ./scripts/orca/wait.sh <NNN-slug>
 # The first line says why it returned:
-#   WAIT MESSAGES   a batch arrived; the check JSON follows. Process every message, then wait with --ack.
+#   WAIT MESSAGES   a batch arrived; the check JSON follows. It is marked handled: process every
+#                   message, then wait again.
 #   WAIT ATTENTION  orca-watch.sh printed ATTENTION lines; its snapshot follows.
 #   WAIT WORKERS    three empty checks in a row and a worker needs action; the rows follow.
 #   WAIT QUIET      nothing in 50 minutes; the watch snapshot follows. Run the script again.
 #   WAIT ERROR      an orca call failed; its output follows.
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
-slug=${1:?usage: wait.sh <NNN-slug> [--ack <deliveryId>]}
-ack=()
-[ "${2:-}" = "--ack" ] && ack=(--ack "${3:?--ack needs a deliveryId}")
+slug=${1:?usage: wait.sh <NNN-slug>}
 checks=5          # 5 x 10 minutes stays inside the one-hour cache
 empty=0
 
 for _ in $(seq "$checks"); do
   # Keepalive lines go to stderr; only the JSON on stdout is read.
-  out=$(orca orchestration check ${ack[@]+"${ack[@]}"} --wait --types "worker_done,escalation,question" \
+  out=$(orca orchestration check --wait --types "worker_done,escalation,question" \
     --timeout-ms 600000 --json 2>/dev/null)
-  ack=()
   count=$(python3 -c '
 import json, sys
 try:
