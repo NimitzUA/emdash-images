@@ -323,13 +323,40 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`. The next plan reads this, not the run's conversation.
+Run `run_47fc19d539fc`, 2026-11-03, base `b9c9ad8`.
 
-- **Merge:** merge commit, task commits, review rounds per task, gates.
-- **Decisions:** taken during the run (task, question, answer, why).
-- **Surprises:** what the plan did not foresee.
-- **Deviations:** what was done differently from the plan, and why.
-- **Follow-ups:** work left for a later plan.
-- **Proposed rules:** a FIX finding that came back in two or more reviews, as a rule for
-  the project's own docs, `.orca-setup.json` or the orca-setup kit; the user decides and applies
-  it (generated files change only by a re-render).
+- **Merge:** `3d241d9` (`Merge plan 015: SQLite for maintenance`). Task commits: T1 `1bd1af3`
+  (review 1 PASS), T2 `11cd4ec` (review 1 PASS), T3 `0976244` (review 1 FIX, one fix round
+  amending `d5e0cea`, review 2 PASS), T4 `6d12acc` (review 1 PASS). Gates: `GATES OK` in the
+  worktree, `RELEASE OK 0.4.0`, protected-files diff against `main` empty, `npm ls kysely` shows
+  root `kysely@0.29.7` with EmDash's copies `deduped`; after the merge `INSTALL OK` and
+  `VERIFY OK` on `main`.
+- **Decisions:** T1 and T2 each asked "dependencies changed, run install"; the architect ran
+  `install-main.sh` in the worktree (`INSTALL OK`) and the lockfile went into that task's
+  commit, as the plan's Preconditions say. T3 fix round 1: the reviewer's [defect] (the CLI
+  helper `resolveDatabaseEnvironment` repeated `databaseSettings`' URL choice and scheme regex)
+  was fixed with one private `selectedDatabaseUrl(env)` in `src/maintenance-database.mjs` used by
+  both; tests unchanged.
+- **Surprises:** `scripts/orca/review.sh start` failed at `task-create` on every review: it
+  reads `result.task.id`, but this Orca answers `{"result":{"taskId":…,"status":"ready"}}`. The
+  task and the reviewer terminal were created, so the architect finished the two remaining steps
+  by hand (`worker-start --task <id> --terminal <h>`, head file `RUN/.review-<h>.head`);
+  `review.sh finish` worked unchanged.
+- **Deviations:** the five review starts above were completed by hand. No plan amendment; no
+  change to Target, Change, Ownership or Acceptance.
+- **Follow-ups:**
+  - Kit: `scripts/orca/review.sh` line 65 should read `result.taskId` (orca-setup kit, then a
+    re-render).
+  - `databaseSettings` takes the `file:` remainder raw: `file://localhost/x.db` becomes the path
+    `//localhost/x.db` and percent-encoding is not decoded (only `file:./…` and `file:/…` were
+    specified). Decide whether to accept or reject the `file://` forms explicitly.
+  - The non-regular-file branch of `openMaintenanceDatabase` (`SQLite database path is not a
+    regular file`) has no test.
+  - The `file:` URL backfill test reads through a new SQLite connection, which would also succeed
+    if the opened database were left open; it does not prove the close (the close is in
+    `finally`, `src/backfill.mjs`).
+  - Upper-case `IMAGE/…` rows with missing metadata are now filled, as the plan foresaw; the
+    `## Unreleased` entries do not mention it.
+  - Release: `## Unreleased` holds `### Added` and `### Changed`; the next release is a minor
+    (0.5.0) per ADR-0003 and ADR-0009 «Release».
+- **Proposed rules:** none. The only FIX finding (T3, duplicated parsing) came up in one review.

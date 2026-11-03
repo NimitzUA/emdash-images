@@ -12,14 +12,12 @@ adopts the package on its own side.
 
 ## Open
 
-1. **SQLite for maintenance — plan 015.** ADR-0009 (accepted 2026-11-03): `backfill` and
-   `cleanup` work with SQLite and PostgreSQL through EmDash's `createDialect` and Kysely, the
-   database chosen from `DATABASE_URL` (`file:` for SQLite); `pg` leaves `dependencies`; the
-   `./maintenance` `pool` option gives way to `database`. Originals stay local; libSQL, D1,
-   Hyperdrive, S3 and R2 are not supported (owner, 2026-11-03).
-2. **Content-hash lookup — plan 016.** ADR-0009: `loadContentHashes(emdash, ids)` returns a
+1. **Content-hash lookup — plan 016.** ADR-0009: `loadContentHashes(emdash, ids)` returns a
    `Map` of media id to `content_hash` in one query per batch, for `Picture` and
    `PortableTextGallery`; answers ADR-0004's open question. Independent of plan 015.
+2. **Plan 015 follow-ups.** `file://localhost/…` and percent-encoded `file:` URLs are taken
+   raw; the non-regular-file branch of `openMaintenanceDatabase` has no test; the backfill
+   `file:` URL test does not prove the close. See plan 015 «Outcome».
 3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
    the `registry` step of `release.yml` finds the published version and skips `npm ci` and
@@ -133,3 +131,11 @@ adopts the package on its own side.
     `41378422497` and approved by the owner with two-factor authentication; `npm view` shows
     `latest: '0.4.0'` with SLSA provenance. The second CI release ran through with no change to
     the procedure.
+17. **SQLite for maintenance — plan 015** (merge `3d241d9`). ADR-0009's maintenance half:
+    `backfill` and `cleanup` run on SQLite or PostgreSQL through EmDash's `createDialect` and
+    Kysely, the database chosen from `DATABASE_URL`, then `EMDASH_DATABASE_URL`, then `PG*`
+    (`file:` for SQLite, resolved against the current directory by the CLI, the file must
+    exist); `pg` left `dependencies` and `kysely` `^0.29.0` is a peer dependency;
+    `./maintenance` takes `database` (a Kysely instance) and refuses `pool`;
+    `MaintenancePool` removed. README, SKILL.md and `### Added`/`### Changed` in
+    `CHANGELOG.md`. Unreleased; the next release is a minor (0.5.0).
