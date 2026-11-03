@@ -12,6 +12,7 @@ import { Kysely } from "kysely";
 import sharp from "sharp";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
+const packageCli = path.join(packageRoot, "src", "bin.mjs");
 const siteRoot = fileURLToPath(new URL("./site/", import.meta.url));
 const packageLink = path.join(siteRoot, "node_modules", "@nimitzua", "emdash-images");
 const dataDirectory = path.join(siteRoot, ".data");
@@ -56,6 +57,7 @@ export async function prepareSiteData() {
 		collections: [{
 			slug: "posts",
 			label: "Posts",
+			supports: ["seo"],
 			urlPattern: "/posts/{slug}",
 			fields: [
 				{ slug: "title", label: "Title", type: "string" },
@@ -114,9 +116,39 @@ export async function prepareSiteData() {
 	}
 }
 
+export async function readMediaRows() {
+	const database = new Kysely({ dialect: createDialect({ url: databasePath }) });
+	try {
+		return await database
+			.selectFrom("media")
+			.select(["id", "storage_key", "content_hash"])
+			.orderBy("storage_key")
+			.execute();
+	} finally {
+		await database.destroy();
+	}
+}
+
+export async function runPackageCli(args, environment) {
+	const output = [];
+	return new Promise((resolve, reject) => {
+		const child = spawn(process.execPath, [packageCli, ...args], {
+			cwd: siteRoot,
+			env: { ...process.env, ...environment },
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		for (const stream of [child.stdout, child.stderr]) {
+			stream.setEncoding("utf8");
+			stream.on("data", (chunk) => output.push(chunk));
+		}
+		child.once("error", reject);
+		child.once("close", (code, signal) => resolve({ code, signal, output: output.join("") }));
+	});
+}
+
 export async function startSite() {
 	const port = await findFreePort();
-	const origin = `http://127.0.0.1:${port}`;
+	const origin = `http://localhost:${port}`;
 	const output = [];
 	let spawnError;
 	let closeResult;

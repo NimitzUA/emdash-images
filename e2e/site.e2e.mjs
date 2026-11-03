@@ -3,10 +3,13 @@ import { access, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, before, describe, test } from "node:test";
-import { buildSite, prepareSiteData, startSite } from "./harness.mjs";
+import { warmPublicSite } from "@nimitzua/emdash-images/warmup";
+import { buildSite, prepareSiteData, readMediaRows, runPackageCli, startSite } from "./harness.mjs";
 
 const serverEntry = fileURLToPath(new URL("./site/dist/server/entry.mjs", import.meta.url));
 const imageCacheDirectory = fileURLToPath(new URL("./site/.data/image-cache/", import.meta.url));
+const databasePath = fileURLToPath(new URL("./site/.data/emdash.sqlite", import.meta.url));
+const uploadsDirectory = fileURLToPath(new URL("./site/.data/uploads/", import.meta.url));
 
 test("the fixture site builds", async () => {
 	await buildSite();
@@ -81,6 +84,67 @@ describe("the fixture site serves image variants", { concurrency: false }, () =>
 		const response = await fetch(deniedUrl);
 		assert.equal(response.status, 404);
 		assert.equal(response.headers.get("x-e2e-denied"), "1");
+	});
+
+	test("backfill versions the page's image URLs", async () => {
+		const result = await runPackageCli(["backfill", "--write"], {
+			DATABASE_URL: `file:${databasePath}`,
+			UPLOADS_DIR: uploadsDirectory,
+		});
+		assert.equal(result.code, 0, result.output);
+		assert.ok(result.output.split(/\r?\n/).some((line) => line.trim() === "Failed rows: 0"), result.output);
+
+		const mediaRows = await readMediaRows();
+		const hashesByStorageKey = new Map(mediaRows.map((row) => [row.storage_key, row.content_hash]));
+		const response = await fetch(`${site.origin}/posts/hello`);
+		assert.equal(response.status, 200);
+		pageHtml = await response.text();
+		pageImageUrls = extractGeneratedImageUrls(pageHtml);
+		assert.ok(pageImageUrls.length > 0);
+
+		for (const value of pageImageUrls) {
+			const imageUrl = new URL(value, site.origin);
+			const version = imageUrl.searchParams.get("v");
+			assert.match(version ?? "", /^[0-9a-f]{16}$/, `${value} has a 16-character lower-case content version`);
+
+			const sourceHref = imageUrl.searchParams.get("href") ?? "";
+			const prefix = "/_emdash/api/media/file/";
+			const sourceUrl = new URL(sourceHref, site.origin);
+			assert.ok(sourceUrl.pathname.startsWith(prefix), `${value} points to a media file`);
+			const storageKey = sourceUrl.pathname.slice(prefix.length);
+			const contentHash = hashesByStorageKey.get(storageKey);
+			assert.match(contentHash ?? "", /^sha1:[0-9a-f]{40}$/i, `${storageKey} has a content hash in the database`);
+			assert.equal(version, contentHash.slice("sha1:".length, "sha1:".length + 16).toLowerCase(), `${value} matches ${storageKey}'s database hash`);
+		}
+	});
+
+	test("a versioned variant is immutable", async () => {
+		const response = await fetch(new URL(pageImageUrls[0], site.origin));
+		assert.equal(response.status, 200);
+		assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+	});
+
+	test("warm-up generates once and then serves from cache", async () => {
+		const options = {
+			cacheDirectory: imageCacheDirectory,
+			deniedStorageKeyPrefixes: ["restricted/"],
+		};
+		const first = await warmPublicSite(site.origin, site.origin, options);
+		assert.deepEqual(first.failures, [], first.failures.join("\n"));
+		assert.ok(first.variants > 0);
+
+		const second = await warmPublicSite(site.origin, site.origin, options);
+		assert.deepEqual(second.failures, [], second.failures.join("\n"));
+		assert.equal(second.generated, 0);
+	});
+
+	test("cleanup finds nothing to delete in a fresh cache", async () => {
+		const result = await runPackageCli(["cleanup"], {
+			DATABASE_URL: `file:${databasePath}`,
+			IMAGE_CACHE_DIR: imageCacheDirectory,
+		});
+		assert.equal(result.code, 0, result.output);
+		assert.ok(result.output.split(/\r?\n/).some((line) => line.trim() === "Candidates: 0 files, 0 bytes"), result.output);
 	});
 });
 
