@@ -107,6 +107,9 @@ release below.
 
 ## Open question
 
+Answered by ADR-0009 (2026-11-03): a package lookup, `loadContentHashes`, loads a page's
+hashes in one query; the component still never queries the database.
+
 The content hash depends on the site passing it. A lookup without the site's help (the
 component or the service reading `content_hash` per image) would make versioned URLs a
 server-side guarantee, but costs one database query per image (N+1 on a list page) and a

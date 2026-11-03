@@ -12,13 +12,15 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Other databases and storage for maintenance.** Backfill and cleanup read media rows through
-   `pg` and files from a local uploads directory. Support EmDash's other databases (SQLite, D1)
-   and storage (S3, R2), likely through EmDash's own APIs; needs an ADR first. The `/_image`
-   guard already reads the `media` table through EmDash's own Kysely connection
-   (`src/media-database.mjs`), so only the CLI maintenance commands are tied to Postgres. That
-   ADR also answers ADR-0004's open question (a content-hash lookup without the site's help).
-2. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
+1. **SQLite for maintenance — plan 015.** ADR-0009 (accepted 2026-11-03): `backfill` and
+   `cleanup` work with SQLite and PostgreSQL through EmDash's `createDialect` and Kysely, the
+   database chosen from `DATABASE_URL` (`file:` for SQLite); `pg` leaves `dependencies`; the
+   `./maintenance` `pool` option gives way to `database`. Originals stay local; libSQL, D1,
+   Hyperdrive, S3 and R2 are not supported (owner, 2026-11-03).
+2. **Content-hash lookup — plan 016.** ADR-0009: `loadContentHashes(emdash, ids)` returns a
+   `Map` of media id to `content_hash` in one query per batch, for `Picture` and
+   `PortableTextGallery`; answers ADR-0004's open question. Independent of plan 015.
+3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
    the `registry` step of `release.yml` finds the published version and skips `npm ci` and
    `npm stage publish`. Check it deliberately at the next release (owner decision,
