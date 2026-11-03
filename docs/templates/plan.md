@@ -21,7 +21,9 @@ site, an owner decision), each with the command or path that proves it; or `None
   the task changes (found with a grep), and the existing tests the change breaks; or
   `no existing test changes`.
 - **Acceptance:** one item per line, each a command or a path in backticks and the result
-  that proves it; "works" or "looks right" proves nothing.
+  that proves it; "works" or "looks right" proves nothing. No inline code (`node -e`,
+  `python3 -c`): put the check in a test or a script. From T2 on, a diff compares with the
+  previous task's commit, not `main`.
   - `./scripts/orca/check.sh` ends with `CHECK OK`
   - `<test file>` covers <case>; `<page>` at <width> px matches `<reference screenshot>`
 - **Commit:** `Imperative subject, at most 72 characters`
