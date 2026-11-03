@@ -9,6 +9,7 @@ export {
 export { pictureSources } from "./sources.mjs";
 export { withImageGuard } from "./guard.mjs";
 export { getMediaDatabase } from "./media-database.mjs";
+export { loadContentHashes } from "./content-hashes.mjs";
 export { emdashImages } from "./plugin.mjs";
 export { scheduleImageWarmup } from "./warmup.mjs";
 export {

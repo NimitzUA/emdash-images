@@ -7,11 +7,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). B
 ### Added
 
 - `emdash-images backfill` and `cleanup` work with SQLite: a `file:` `DATABASE_URL` or `EMDASH_DATABASE_URL`, resolved against the current directory.
+- `loadContentHashes(emdash, ids)` returns a `Map` from media id to `content_hash` for `ready` media in one query per 500 ids, to version `Picture`, `PortableTextImage` and `PortableTextGallery` URLs without a site-owned query.
 
 ### Changed
 
 - `backfillMediaRows` and `cleanupImageCache` take `database`, a Kysely instance, in place of `pool`; passing `pool` throws and `MaintenancePool` is removed.
 - `pg` is no longer a dependency: PostgreSQL maintenance uses EmDash's dialect and its optional `pg`; `kysely` is a peer dependency.
+- `backfill` now also fills metadata for rows whose MIME type is stored in upper case (`IMAGE/…`), which PostgreSQL used to skip.
 
 ## [0.4.0] - 2026-11-02
 

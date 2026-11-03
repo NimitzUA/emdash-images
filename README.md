@@ -131,12 +131,14 @@ Import `Picture.astro` to render an EmDash image field:
 
 ```astro
 ---
+import { loadContentHashes } from "@nimitzua/emdash-images";
 import Picture from "@nimitzua/emdash-images/Picture.astro";
+const contentHashes = await loadContentHashes(Astro.locals.emdash, [entry.data.featured_image?.id]);
 ---
 
 <Picture
 	image={entry.data.featured_image}
-	contentHash={featuredImageContentHash}
+	contentHash={contentHashes.get(entry.data.featured_image?.id)}
 	sizes="(min-width: 60rem) 50vw, 100vw"
 />
 ```
@@ -161,7 +163,7 @@ import Picture from "@nimitzua/emdash-images/Picture.astro";
 | `pictureAttributes` | Attributes to apply to the wrapping `<picture>`. |
 | `placeholder` | LQIP placeholder from `blurhash`, else a hex, `rgb()` or `rgba()` `dominantColor` (other values are ignored), as an inline background; defaults to `true`; pass `false` for a strict Content Security Policy. |
 
-Standard `<img>` attributes such as `sizes`, `loading`, `decoding`, `class`, `style`, and `id` pass through to the `<img>`. The component does not query for `content_hash`: fetch hashes for the page's media IDs in one site-owned query, then pass each matching value as `contentHash` (and `darkContentHash` for a dark variant). Without a valid hash, generated URLs are unversioned.
+Standard `<img>` attributes such as `sizes`, `loading`, `decoding`, `class`, `style`, and `id` pass through to the `<img>`. The component does not query for `content_hash`: call `loadContentHashes` once per page with its media IDs and pass each matching value as `contentHash` (and `darkContentHash` for a dark variant). It returns only `ready` rows with a hash, runs one query per 500 IDs, and returns an empty map when there is no database. Without a valid hash, generated URLs are unversioned.
 
 When an EmDash image is resolved by its media ID, Astro must allow its path in `image.remotePatterns`, for example `{ pathname: "/_emdash/api/media/file/**" }`. External providers and other sources Astro cannot transform render a plain `<img>` with the resolved URL.
 
@@ -188,7 +190,7 @@ import PortableTextGallery from "@nimitzua/emdash-images/PortableTextGallery.ast
 />
 ```
 
-`PortableText` gives the block component `node`, `index`, and `isInline`, so it cannot pass `contentHash` directly. Fetch hashes for the page's image media IDs in one site-owned query, expose the resulting map to a site wrapper, then pass the matching hash to `PortableTextImage`. For example, if site middleware or page data setup places that map in `Astro.locals.imageHashes`, the wrapper can do this:
+`PortableText` gives the block component `node`, `index`, and `isInline`, so it cannot pass `contentHash` directly. Call `loadContentHashes` once for the page with the media IDs from its Portable Text value: `node.asset._ref` for each `image` block and `images[].asset._ref` for each `gallery` block. Expose the resulting map to the site wrappers, for example through `Astro.locals`, then pass the matching hash to `PortableTextImage`. For example, if site middleware or page data setup places that map in `Astro.locals.imageHashes`, the wrapper can do this:
 
 ```astro
 ---
@@ -327,7 +329,7 @@ npx emdash-images warm --config ./src/lib/image-options.mjs --origin https://exa
 
 Backfill and cleanup default to dry runs; `--write` applies backfill metadata and `--delete` removes eligible cache files. Review each dry-run report before applying changes. Run warm-up again after its first successful run; it should report `Generated: 0` when the variants are already cached. Add `--env-file ./.env` to a command to load environment values from a file; existing process environment values take precedence over values in that file.
 
-Backfill and cleanup work with SQLite and PostgreSQL. The connection comes from `DATABASE_URL`, then `EMDASH_DATABASE_URL`, then `PGHOST`, `PGPORT` (default `5432`), `PGDATABASE`, `PGUSER`, and optional `PGPASSWORD`. A `file:` URL selects SQLite; its path is resolved against the current working directory (for example, `DATABASE_URL=file:./data/emdash.db`, the path from EmDash's `sqlite({ url })`), and the file must exist. A `postgres:` or `postgresql:` URL, or the `PG*` variables, selects PostgreSQL, which needs `pg` (EmDash installs it as an optional dependency). LibSQL, D1, and Hyperdrive are not supported. Backfill reads originals from the local `UPLOADS_DIR` only (default `uploads`); S3 and R2 storage are not supported.
+Backfill and cleanup work with SQLite and PostgreSQL. The connection comes from `DATABASE_URL`, then `EMDASH_DATABASE_URL`, then `PGHOST`, `PGPORT` (default `5432`), `PGDATABASE`, `PGUSER`, and optional `PGPASSWORD`. A `file:` URL selects SQLite; its path is resolved against the current working directory (for example, `DATABASE_URL=file:./data/emdash.db`) and the file must exist. The `file:` URL is read as EmDash's `sqlite({ url })` reads it, so use `file:./…` or `file:/…`; `file://` forms and percent-encoding are not decoded. A `postgres:` or `postgresql:` URL, or the `PG*` variables, selects PostgreSQL, which needs `pg` (EmDash installs it as an optional dependency). LibSQL, D1, and Hyperdrive are not supported. Backfill reads originals from the local `UPLOADS_DIR` only (default `uploads`); S3 and R2 storage are not supported.
 
 Cleanup uses `IMAGE_CACHE_DIR` from the process environment or `--env-file`, then `cacheDirectory` from the config, with relative paths resolved against the current working directory. It refuses when neither is set. Warm uses the same order and then falls back to `.dev/image-cache`. Backfill resolves `UPLOADS_DIR` against the current working directory (default `uploads`). Without `--origin`, warm reads a valid `PORT` or `SITE_PORT` for its local request origin and uses `EMDASH_SITE_URL` as the public origin when set (otherwise it uses the local origin); these URL settings can come from `--env-file`. With `--origin`, that URL is the request origin; `--public-origin` requires `--origin` and can set a different public origin. Both options must be absolute `http:` or `https:` URLs; invalid URLs exit with code `2`.
 
@@ -339,4 +341,4 @@ The runtime image needs the installed package in its `node_modules` tree. Set `I
 
 ## Package exports
 
-The root export contains descriptors and helpers. `./Picture.astro` renders EmDash image fields, `./PortableTextImage.astro` renders Portable Text image blocks, and `./PortableTextGallery.astro` renders Portable Text gallery blocks. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers. `backfillMediaRows` and `cleanupImageCache` from `./maintenance` take a `database` option, an open Kysely instance; if omitted, they open and close a connection using `env` as the CLI does, and they no longer accept `pool`.
+The root export contains descriptors and helpers, including `loadContentHashes(emdash, ids)`. `./Picture.astro` renders EmDash image fields, `./PortableTextImage.astro` renders Portable Text image blocks, and `./PortableTextGallery.astro` renders Portable Text gallery blocks. `./service` is the Astro image service, `./plugin` is the native plugin entry point, `./warmup` contains warm-up functions, `./maintenance` contains backfill and cleanup functions, and `./layout` exposes cache-layout helpers. `backfillMediaRows` and `cleanupImageCache` from `./maintenance` take a `database` option, an open Kysely instance; if omitted, they open and close a connection using `env` as the CLI does, and they no longer accept `pool`.
