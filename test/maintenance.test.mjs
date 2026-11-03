@@ -9,6 +9,7 @@ import { imageCacheSettings8, imageVariantCachePath } from "@nimitzua/emdash-ima
 import { backfillMediaRows, cleanupImageCache } from "@nimitzua/emdash-images/maintenance";
 import { hashStoredMediaFile, parseArguments } from "../src/backfill.mjs";
 import { assertPathInsideCache, validateCacheDirectory } from "../src/cleanup.mjs";
+import { createMediaDatabase } from "./sqlite-media.mjs";
 
 function imageRow(id, storageKey, extra = {}) {
 	return {
@@ -34,39 +35,12 @@ async function writeVariant(cacheDirectory, mediaId, hash16, contents, config) {
 }
 
 async function createCleanupDatabase(directory, rows = []) {
-	const databasePath = path.join(directory, "maintenance.db");
-	const [{ createDialect }, { runMigrations }] = await Promise.all([
-		import("emdash/db/sqlite"),
-		import("emdash/db"),
-	]);
-	const database = new Kysely({ dialect: createDialect({ url: databasePath }) });
-	try {
-		await runMigrations(database);
-		if (rows.length) {
-			await database.insertInto("media").values(rows.map((row) => ({
-				id: row.id,
-				filename: row.filename ?? `${row.id}.png`,
-				mime_type: row.mime_type ?? "image/png",
-				size: row.size ?? null,
-				storage_key: row.storage_key,
-				content_hash: row.content_hash ?? null,
-				width: row.width ?? null,
-				height: row.height ?? null,
-				blurhash: row.blurhash ?? null,
-				dominant_color: row.dominant_color ?? null,
-				status: row.status ?? "ready",
-			}))).execute();
-		}
-		return { database, databasePath };
-	} catch (error) {
-		await database.destroy();
-		throw error;
-	}
+	return createMediaDatabase(directory, rows);
 }
 
 async function createBackfillDatabase(directory, rows = []) {
 	await mkdir(directory, { recursive: true });
-	return createCleanupDatabase(directory, rows);
+	return createMediaDatabase(directory, rows);
 }
 
 async function readMediaRows(database) {

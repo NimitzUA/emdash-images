@@ -56,6 +56,7 @@ export declare function withImageGuard<Context extends ImageGuardContext = Image
 ): (context: Context, next: () => Promise<Response>) => Promise<Response>;
 
 export declare function getMediaDatabase<TDatabase = unknown>(emdash: unknown): Promise<TDatabase | undefined>;
+export declare function loadContentHashes(emdash: unknown, ids: Iterable<string | null | undefined> | null | undefined): Promise<Map<string, string>>;
 
 export declare function createImageEncodeLimiter(limit?: number): <T>(operation: () => T | PromiseLike<T>) => Promise<Awaited<T>>;
 export declare function isPublicImageWidthAllowed(width: number, originalWidth: number, imageConfig?: unknown): boolean;
