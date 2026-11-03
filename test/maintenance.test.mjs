@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { computeContentHash } from "emdash";
+import { Kysely, PostgresAdapter, PostgresIntrospector, PostgresQueryCompiler } from "kysely";
 import { imageCacheSettings8, imageVariantCachePath } from "@nimitzua/emdash-images/layout";
 import { backfillMediaRows, cleanupImageCache } from "@nimitzua/emdash-images/maintenance";
 import { hashStoredMediaFile, parseArguments } from "../src/backfill.mjs";
@@ -72,6 +73,33 @@ async function writeVariant(cacheDirectory, mediaId, hash16, contents, config) {
 	await mkdir(path.dirname(target), { recursive: true });
 	await writeFile(target, contents);
 	return target;
+}
+
+async function createCleanupDatabase(directory, rows = []) {
+	const databasePath = path.join(directory, "maintenance.db");
+	const [{ createDialect }, { runMigrations }] = await Promise.all([
+		import("emdash/db/sqlite"),
+		import("emdash/db"),
+	]);
+	const database = new Kysely({ dialect: createDialect({ url: databasePath }) });
+	try {
+		await runMigrations(database);
+		if (rows.length) {
+			await database.insertInto("media").values(rows.map((row) => ({
+				id: row.id,
+				filename: row.filename ?? `${row.id}.png`,
+				mime_type: row.mime_type ?? "image/png",
+				size: row.size ?? null,
+				storage_key: row.storage_key,
+				content_hash: row.content_hash ?? null,
+				status: row.status ?? "ready",
+			}))).execute();
+		}
+		return { database, databasePath };
+	} catch (error) {
+		await database.destroy();
+		throw error;
+	}
 }
 
 test("backfill uses denied prefixes for SQL selection and metadata while preserving hash candidates", async (t) => {
@@ -331,13 +359,14 @@ test("cleanup rejects unset, root, symlink, and escaping cache paths", async (t)
 	const linkedCache = path.join(directory, "cache-link");
 	await mkdir(realCache);
 	await symlink(realCache, linkedCache, "dir");
-	const pool = { async query() { return { rows: [] }; } };
+	const { database } = await createCleanupDatabase(directory);
+	t.after(() => database.destroy());
 
 	await assert.rejects(validateCacheDirectory(undefined), /IMAGE_CACHE_DIR must be set/);
 	await assert.rejects(validateCacheDirectory("/"), /must not be the filesystem root/);
 	await assert.rejects(validateCacheDirectory(linkedCache), /must not be a symbolic link/);
 	await assert.rejects(
-		cleanupImageCache({ env: { IMAGE_CACHE_DIR: linkedCache }, pool }),
+		cleanupImageCache({ env: { IMAGE_CACHE_DIR: linkedCache }, database }),
 		/must not be a symbolic link/,
 	);
 	assert.throws(() => assertPathInsideCache(realCache, path.join(directory, "outside.txt")), /escapes IMAGE_CACHE_DIR/);
@@ -395,12 +424,13 @@ test("cleanup dry-run lists stale categories and delete is safe and idempotent",
 	await writeFile(outsideFile, "do not touch");
 	await symlink(outsideDirectory, path.join(cacheDirectory, "v2-outside"), "dir");
 	const output = [];
-	const pool = { async query() { return { rows }; } };
+	const { database } = await createCleanupDatabase(directory, rows);
+	t.after(() => database.destroy());
 	const env = { IMAGE_CACHE_DIR: cacheDirectory };
 	const options = {
 		args: [],
 		env,
-		pool,
+		database,
 		now,
 		deniedStorageKeyPrefixes: ["private-cases/"],
 		encoder: config.service.config,
@@ -482,6 +512,8 @@ test("cleanup leaves a variant created after its cache listing", async (t) => {
 	const row = { id: "published-during-list", status: "ready", storage_key: "work/new.png", content_hash: `sha1:${"a".repeat(40)}` };
 	let listed = false;
 	let variantPath;
+	const { database } = await createCleanupDatabase(directory, [row]);
+	t.after(() => database.destroy());
 	const listCacheFiles = async (listedDirectory) => {
 		const files = [];
 		if (variantPath) {
@@ -495,24 +527,127 @@ test("cleanup leaves a variant created after its cache listing", async (t) => {
 		listed = true;
 		return files;
 	};
-	const pool = {
-		async query() {
-			if (!variantPath) {
+	const listingRaceDatabase = database.withPlugin({
+		transformQuery({ node }) {
+			return node;
+		},
+		async transformResult({ result }) {
+			if (listed && !variantPath) {
 				variantPath = imageVariantCachePath(cacheDirectory, row.id, currentHash, 640, "webp", config);
 				await mkdir(path.dirname(variantPath), { recursive: true });
 				await writeFile(variantPath, "new publish");
 			}
-			return { rows: listed ? [row] : [] };
+			return result;
 		},
-	};
+	});
 	const result = await cleanupImageCache({
 		args: ["--delete"],
 		env: { IMAGE_CACHE_DIR: cacheDirectory },
-		pool,
+		database: listingRaceDatabase,
 		encoder: config.service.config,
 		listCacheFiles,
 		log: () => undefined,
 	});
 	assert.equal(result.deletedFiles, 0);
 	assert.equal(await readFile(variantPath, "utf8"), "new publish");
+});
+
+test("cleanup opens a file: database URL and returns the expected dry-run candidates", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-cache-file-url-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const cacheDirectory = path.join(directory, "cache");
+	await mkdir(cacheDirectory);
+	const config = { service: { config: { avif: { quality: 55, effort: 4, chromaSubsampling: "4:4:4" }, webp: { quality: 75, effort: 4, smartSubsample: true } } } };
+	const currentHash = "a".repeat(16);
+	const row = { id: "not-ready-from-file-url", status: "uploading", storage_key: "work/upload.png", content_hash: `sha1:${"a".repeat(40)}` };
+	const candidatePath = await writeVariant(cacheDirectory, row.id, currentHash, "not ready", config);
+	const { database, databasePath } = await createCleanupDatabase(directory, [row]);
+	await database.destroy();
+
+	const result = await cleanupImageCache({
+		args: [],
+		env: { IMAGE_CACHE_DIR: cacheDirectory, DATABASE_URL: `file:${databasePath}` },
+		encoder: config.service.config,
+		log: () => undefined,
+	});
+	assert.deepEqual(result.candidates.map(({ category, relativePath }) => ({ category, relativePath })), [
+		{ category: "not-ready", relativePath: path.relative(cacheDirectory, candidatePath) },
+	]);
+});
+
+test("cleanup keeps a supplied database usable after the call", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-cache-supplied-database-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const cacheDirectory = path.join(directory, "cache");
+	await mkdir(cacheDirectory);
+	const { database } = await createCleanupDatabase(directory, [
+		{ id: "still-open", status: "ready", storage_key: "work/current.png", content_hash: null },
+	]);
+	t.after(() => database.destroy());
+
+	await cleanupImageCache({
+		args: [],
+		env: { IMAGE_CACHE_DIR: cacheDirectory },
+		database,
+		log: () => undefined,
+	});
+	const rows = await database.selectFrom("media").select("id").execute();
+	assert.deepEqual(rows.map(({ id }) => id), ["still-open"]);
+});
+
+test("cleanup refuses the removed pool option", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-cache-pool-refused-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const cacheDirectory = path.join(directory, "cache");
+	await mkdir(cacheDirectory);
+	await assert.rejects(
+		cleanupImageCache({ env: { IMAGE_CACHE_DIR: cacheDirectory }, pool: {} }),
+		(error) => error instanceof TypeError && /database/.test(error.message),
+	);
+});
+
+test("cleanup query compiles for PostgreSQL without dialect-specific SQL", async (t) => {
+	const directory = await mkdtemp(path.join(tmpdir(), "image-cache-postgres-compile-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	const cacheDirectory = path.join(directory, "cache");
+	await mkdir(cacheDirectory);
+	const compiledQueries = [];
+	const driver = {
+		async init() {},
+		async acquireConnection() {
+			return {
+				async executeQuery(query) {
+					compiledQueries.push(query);
+					return { rows: [] };
+				},
+				async *streamQuery() {},
+			};
+		},
+		async beginTransaction() {},
+		async commitTransaction() {},
+		async rollbackTransaction() {},
+		async releaseConnection() {},
+		async destroy() {},
+	};
+	const database = new Kysely({
+		dialect: {
+			createAdapter: () => new PostgresAdapter(),
+			createDriver: () => driver,
+			createQueryCompiler: () => new PostgresQueryCompiler(),
+			createIntrospector: (db) => new PostgresIntrospector(db),
+		},
+	});
+	try {
+		await cleanupImageCache({
+			args: [],
+			env: { IMAGE_CACHE_DIR: cacheDirectory },
+			database,
+			listCacheFiles: async () => [],
+			log: () => undefined,
+		});
+		assert.equal(compiledQueries.length, 1);
+		assert.doesNotMatch(compiledQueries[0].sql, /unnest|::|char_length/i);
+	} finally {
+		await database.destroy();
+	}
 });

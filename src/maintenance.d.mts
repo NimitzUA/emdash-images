@@ -1,3 +1,5 @@
+import type { Kysely } from "kysely";
+
 export interface MaintenancePool {
 	query(sql: string, values?: unknown[]): Promise<{
 		rows?: Record<string, unknown>[];
@@ -27,7 +29,7 @@ export declare function backfillMediaRows(options?: BackfillMediaRowsOptions): P
 export interface CleanupImageCacheOptions {
 	args?: string[];
 	env?: Record<string, string | undefined>;
-	pool?: MaintenancePool;
+	database?: Kysely<any>;
 	now?: number;
 	log?: (line: string) => void;
 	listCacheFiles?: (cacheDirectory: string) => Promise<Array<{
