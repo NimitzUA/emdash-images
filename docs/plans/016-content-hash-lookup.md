@@ -224,13 +224,46 @@ None.
 
 ## Outcome
 
-Filled after merge, from `status.md`. The next plan reads this, not the run's conversation.
+Run `run_e6f76993b85f`, 2026-11-03, base `61adf8e`.
 
-- **Merge:** merge commit, task commits, review rounds per task, gates.
-- **Decisions:** taken during the run (task, question, answer, why).
-- **Surprises:** what the plan did not foresee.
-- **Deviations:** what was done differently from the plan, and why.
-- **Follow-ups:** work left for a later plan.
-- **Proposed rules:** a FIX finding that came back in two or more reviews, as a rule for
-  the project's own docs, `.orca-setup.json` or the orca-setup kit; the user decides and applies
-  it (generated files change only by a re-render).
+- **Merge:** `822d1a5` (`Merge plan 016: content-hash lookup`). Task commits: T1 `3e68ab4`
+  (review 1 PASS), T2 `abe5452` (review 1 FIX, one docs-only fix round amending `e24531c`,
+  `docs-only.sh` printed `DOCS ONLY`, accepted on the architect's reading of the diff), T3
+  `da13e3d` (review 1 PASS). Gates: `GATES OK` in the worktree, `RELEASE OK 0.4.0`,
+  protected-files diff against `main` empty; lockfile unchanged, so no install; after the merge
+  `VERIFY OK` on `main`.
+- **Decisions:** T3 asked about Acceptance "`git diff main -- src` prints nothing", which
+  cannot hold once T1's `src/` files are on the branch. Answer: it means T3 changes nothing
+  under `src/` (its Constraints say so); evidence is `git diff abe5452 HEAD -- src` empty and
+  `git diff main --stat -- src` listing only T1's three files. Acceptance text unchanged.
+- **Surprises:**
+  - `scripts/orca/review.sh start` still fails at `task-create` (reads `result.task.id`; Orca
+    answers `result.taskId`), as in plan 015; all three review starts were finished by hand
+    (`worker-start --task <id> --terminal <h>`, head file `RUN/.review-<h>.head`).
+  - The T3 executor's commit signing hung twice; it staged its files and finished `failed`.
+  - The first `git merge --no-ff` on `main` failed to sign (`1Password: agent returned an
+    error`) and left `MERGE_HEAD` with the merge staged; after the owner unlocked 1Password
+    the architect concluded it with `git commit --no-edit`.
+  - T1 Acceptance `node --input-type=module -e "…"` could not be rerun by the reviewer or the
+    architect (both hooks refuse inline node code); the executor's report shows `function`, and
+    `test/content-hashes.test.mjs` imports `loadContentHashes` from `@nimitzua/emdash-images`
+    and passes in the gates.
+- **Deviations:** T3's commit was made by the architect from the staged files, unchanged
+  (`Test maintenance database edge cases and note them`), then reviewed. No plan amendment; no
+  change to Target, Change, Ownership or Acceptance.
+- **Follow-ups:**
+  - Kit: `scripts/orca/review.sh` line 65 should read `result.taskId` (orca-setup kit, then a
+    re-render). Open since plan 015.
+  - Plan Acceptance that diffs against `main` for a later task should name the task's own base
+    (the previous task commit), or say "only the earlier tasks' files".
+  - Plan Acceptance with inline `node -e` cannot be rerun by Claude roles; put such checks in a
+    test or a project script.
+  - `test/maintenance.test.mjs` close checks rely on SQLite deleting `-wal` on the last close
+    (default; not with `SQLITE_FCNTL_PERSIST_WAL`).
+  - `README.md` «`Picture` component» example builds a one-id map per field; the paragraph says
+    to call `loadContentHashes` once per page.
+  - Release: `## Unreleased` now holds plan 015 and 016 changes; the next release is 0.5.0
+    (owner, 2026-11-03), including the ADR-0007 re-run check in `docs/ROADMAP.md`.
+- **Proposed rules:** none. The only FIX review (T2) had two `[docs]` findings with different
+  causes (a code-fence line outside its list-item indent; spec wording "as today" copied into
+  the README), each once.

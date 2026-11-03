@@ -12,17 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Content-hash lookup — plan 016.** ADR-0009: `loadContentHashes(emdash, ids)` returns a
-   `Map` of media id to `content_hash` in one query per batch, for `Picture` and
-   `PortableTextGallery`; answers ADR-0004's open question. Independent of plan 015.
-2. **Plan 015 follow-ups.** `file://localhost/…` and percent-encoded `file:` URLs are taken
-   raw, as EmDash's own `sqlite({ url })` takes them: keep the code, and `README.md` names the
-   supported forms `file:./…` and `file:/…` (owner, 2026-11-03). The two missing tests below and a `## Unreleased` `CHANGELOG.md` line
-   saying that `backfill` now also fills rows with an upper-case `IMAGE/…` MIME type go into
-   plan 016 as its last task (owner, 2026-11-03). Release 0.5.0 after plan 016, with both
-   plans in one minor (owner, 2026-11-03). The non-regular-file branch of `openMaintenanceDatabase` has no test; the backfill
-   `file:` URL test does not prove the close. See plan 015 «Outcome».
-3. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
+1. **Release 0.5.0.** Plans 015 and 016 in one minor (owner, 2026-11-03), with the ADR-0007
+   check in item 2. Kit follow-up: `scripts/orca/review.sh` line 65 should read
+   `result.taskId` (plans 015 and 016 «Outcome»).
+2. **ADR-0007 open point.** Whether `gh run rerun` on a release run whose version is already
    staged tries to stage it again is still unchecked. A re-run after approval proves nothing:
    the `registry` step of `release.yml` finds the published version and skips `npm ci` and
    `npm stage publish`. Check it deliberately at the next release (owner decision,
@@ -143,3 +136,11 @@ adopts the package on its own side.
     `./maintenance` takes `database` (a Kysely instance) and refuses `pool`;
     `MaintenancePool` removed. README, SKILL.md and `### Added`/`### Changed` in
     `CHANGELOG.md`. Unreleased; the next release is a minor (0.5.0).
+18. **Content-hash lookup and plan 015 follow-ups — plan 016** (merge `822d1a5`). ADR-0009's
+    lookup half: root export `loadContentHashes(emdash, ids)` returns a `Map` of media id to
+    `content_hash` for `ready` media with a non-blank hash, one query per 500 ids, an empty map
+    without ids or database, query errors propagated; answers ADR-0004's open question.
+    README, SKILL.md and `### Added` document it in place of a site-owned query. Plan 015
+    follow-ups closed: tests for a directory as `file:` path and for the close in `backfill` and
+    `cleanup`; README names `file:./…` and `file:/…` (no `file://` or percent-decoding);
+    `### Changed` notes upper-case `IMAGE/…` rows. Unreleased; the next release is 0.5.0.
