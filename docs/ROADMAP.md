@@ -12,7 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Kit follow-up.** `scripts/orca/review.sh` line 65 should read `result.taskId` (plans 015
+1. **End-to-end test site — plan 017.** A fixture EmDash site in `e2e/site/`, built and
+   served by `npm run test:e2e` in CI: pages, `/_image`, the guard, `backfill`, warm-up and
+   cleanup over HTTP (owner, 2026-11-03).
+2. **Kit follow-up.** `scripts/orca/review.sh` line 65 should read `result.taskId` (plans 015
    and 016 «Outcome»); a change in the orca-setup kit and a re-render, by the owner.
 
 ## Out of scope
