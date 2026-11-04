@@ -12,10 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **Warm-up and `allowedDomains`** (plan 017 «Outcome»). On a site without
-   `security.allowedDomains` the sitemap lists `localhost:<port>` and warm-up silently finds no
-   pages beyond `/`; document it or make warm-up report it. Fixture and harness follow-ups in the
-   same Outcome.
+1. **Warm-up public origin and summary — plan 018** (plan 017 «Outcome»). On a site without
+   a public origin the sitemap lists `localhost:<port>` and warm-up silently finds no pages
+   beyond `/`; warm-up reports such locations as failures, `warm` prints its summary, the docs
+   name `EMDASH_SITE_URL`, and the fixture and harness follow-ups land. Next release 0.6.0.
 2. **Kit follow-up.** `scripts/orca/review.sh` line 65 should read `result.taskId` (plans 015
    and 016 «Outcome»); a change in the orca-setup kit and a re-render, by the owner.
 
