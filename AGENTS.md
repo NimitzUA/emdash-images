@@ -66,6 +66,9 @@ When your prompt starts with an Orca preamble carrying Task and Dispatch ids:
   - every command, flag and path you wrote into docs, runbooks, comments or messages exists:
     run it, or check it with its `--help` (not for `orca`) or `ls`;
   - nothing outside your Ownership changed (`git status --short`).
+- Write the report and the checklist at the absolute paths in your spec, never as a relative
+  path: `.scratch/runs/…` resolves in the worktree, where nobody reads it (emdash-images plan
+  017, T1 fix round).
 - Write the report to the Report path in your spec, in the format of `docs/templates/report.md`: for each
   Acceptance item the command you ran and the result line it printed. A claim without its
   result line counts as not done. Never paste `.env` values, tokens or connection strings into it.

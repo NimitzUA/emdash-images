@@ -84,8 +84,14 @@ knows only the plan, the docs and `status.md`.
 1. Write `RUN/T<n>.review-<k>.spec.md` from `docs/templates/review-spec.md`. Ask only for
    commands the reviewer's role runs: it cannot read `.env`, write the database or run host
    scripts, so a check that needs them comes from the executor's report or from you at gates.
+   An Acceptance item marked `(gate)` is not the reviewer's: list it as `NOT RUN` with the
+   executor's result line and add it to the plan gates you check yourself.
    Write each command plainly, with no `VAR=value` or `env` prefix: Claude Code asks for
    approval on it and the review waits for the user. Put such a setup in a project script.
+   Name only paths in WT and RUN: a path in REPO (the amended plan, a doc on `main`)
+   stops the reviewer at Claude Code's "read outside the working directories" prompt. When the
+   plan was amended during the task, copy the amended lines into the review spec (emdash-images
+   plan 017 T1).
 2. `./scripts/orca/review.sh start <NNN-slug> T<n> <k>`: it opens a fresh reviewer terminal in
    WT, waits until it is idle and dispatches the review spec. The last line is
    `REVIEW STARTED terminal=<h> dispatch=<id>`; put both in `status.md`. On `REVIEW FAILED <step>`

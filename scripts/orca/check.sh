@@ -3,7 +3,7 @@
 # The executor's checks for one task, in one run; with --e2e also the end-to-end steps. Always
 # stops what it started and confirms it.
 #   ./scripts/orca/check.sh          test 
-#   ./scripts/orca/check.sh --e2e    the same plus 
+#   ./scripts/orca/check.sh --e2e    the same plus e2e 
 # Prints one "=== <step> exit <code>" line per step and "CHECK OK" or "CHECK FAILED: <steps>".
 # The full output goes to .scratch/tmp/check.log.
 set -uo pipefail
@@ -32,7 +32,9 @@ step() {
 }
 
 step test npm test
-[ "$e2e" -eq 0 ] || echo "check: no end-to-end steps are configured (.orca-setup.json checks.task_e2e)" | tee -a "$log"
+if [ "$e2e" -eq 1 ]; then
+  step e2e npm run test:e2e
+fi
 
 echo "log: $log"
 if [ "${#failed[@]}" -eq 0 ]; then

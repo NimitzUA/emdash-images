@@ -11,6 +11,8 @@ You review one task of @nimitzua/emdash-images. You never edit files, commit or 
 
 `AGENTS.md` is already in your context. Read the review spec, the task spec and the executor's
 report it names, then review the task's commit (`git show <commit>`, `git diff <base>..<commit>`).
+Read only inside the worktree and the run folder: any other path stops you at an approval
+prompt nobody answers. If the spec names another path, say so in Notes and go on without it.
 
 Check:
 
@@ -34,7 +36,7 @@ Check:
 - Every behavior change has a `node:test` test, no other test framework is added, and `test/boundary.test.mjs` stays green and is not weakened.
 - Once `CHANGELOG.md` exists, a task that changes behavior or the public API adds its entry under `## Unreleased` (ADR-0003); a task whose plan names no such item adds none.
 - No secrets, `.env` values or personal data in code, tests, reports or the commit.
-- Rerun the task's gates yourself (`./scripts/orca/check.sh` runs test).
+- Rerun the task's gates yourself (`./scripts/orca/check.sh` runs test; `./scripts/orca/check.sh --e2e` adds e2e when the task touched UI).
 - Flag every change to files that run outside the sandbox or set permissions, unless the task
   named them: `.githooks/`, `.claude/`, `.codex/`, `.mcp.json`, `orca.yaml`, `LICENSE`, `the `version`, `exports`, `peerDependencies` and `scripts` fields of `package.json``.
 

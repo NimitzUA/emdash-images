@@ -6,7 +6,7 @@ Usage: ./scripts/orca/plan-check.py <plan.md>
 The plan follows docs/templates/plan.md. Checked: Goal and Preconditions are filled in, the
 plan has 1 to 5 tasks numbered T1, T2, ..., every task carries Target, Change,
 Constraints, Ownership, Acceptance, Commit and Docs, every Acceptance item names a command or a
-path in backticks and runs no inline interpreter code, every Ownership names tests (or says `no existing test changes`), every
+path in backticks and runs no inline interpreter code or unmarked process check, every Ownership names tests (or says `no existing test changes`), every
 commit subject fits in 72 characters, and the
 Outcome section exists.
 Prints one line per problem, then `PLAN OK` or `PLAN FAILED <count>`; exit 1 on failure.
@@ -23,6 +23,8 @@ PLACEHOLDERS = ("one sentence.", "links to the ADRs", "what must exist before th
                 "one item per line, each a command", "Imperative subject")
 # An interpreter, only flags after it, then the flag that takes code: node --input-type=module -e "…".
 INLINE_CODE = re.compile(r"\b(node|python3?|perl|ruby)(\s+-[-\w=]+)*?\s+-(e|c|pe|p|-eval)\b")
+# A process check fails in every sandbox (`sysmond service not found`, emdash-images plan 017).
+PROCESS_CHECK = re.compile(r"`[^`]*\b(pgrep|pkill|ps)\s[^`]*`")
 FIELD = re.compile(r"^- \*\*(\w[\w ]*):\*\*\s*(.*)$")
 
 def fields_of(lines):
@@ -101,6 +103,9 @@ def check(path):
             elif INLINE_CODE.search(item):
                 problems.append(f"{name}: Acceptance item runs inline code, which the Claude roles cannot "
                                 f"rerun; put the check in a test or a script: {item[:70]!r}")
+            elif PROCESS_CHECK.search(item) and "(gate)" not in item:
+                problems.append(f"{name}: Acceptance item checks processes, which fails in every sandbox; "
+                                f"assert it in a test or mark the item `(gate)`: {item[:70]!r}")
         commit = " ".join(fields.get("Commit", []))
         subject = re.search(r"`([^`]+)`", commit)
         if commit and not subject:

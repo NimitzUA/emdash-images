@@ -10,6 +10,8 @@ You are the reviewer (read-only). Worktree:
 - **Previous reviews** (fix rounds only): `.../T<n>.review-<k-1>.md`; check only those findings
   and regressions.
 - **Architect decisions during the task:** <none, or each decision in one line>.
+- **Plan amended during the task:** <none, or the amended lines of the task block, verbatim;
+  the reviewer cannot read the plan in the main checkout>.
 - **Write your review to:** `/Users/serhii/Developer/emdash-images/.scratch/runs/NNN-slug/T<n>.review-<k>.md` with the Write tool, in
   the format of your instructions.
 
@@ -19,7 +21,7 @@ You are the reviewer (read-only). Worktree:
      prove, the threat model and stop condition for a security task, size notes. -->
 
 - Only Ownership files changed: `git show --stat <hash>`.
-- Rerun: `./scripts/orca/check.sh` runs test, `scripts/orca/check-commits.sh main..task/NNN-slug`.
+- Rerun: `./scripts/orca/check.sh` runs test; `./scripts/orca/check.sh --e2e` adds e2e when the task touched UI, `scripts/orca/check-commits.sh main..task/NNN-slug`.
 
 ## Rules
 

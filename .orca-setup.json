@@ -49,6 +49,12 @@
         "cmd": "npm test"
       }
     ],
+    "task_e2e": [
+      {
+        "name": "e2e",
+        "cmd": "npm run test:e2e"
+      }
+    ],
     "verify": [
       {
         "name": "test",

@@ -23,7 +23,9 @@ site, an owner decision), each with the command or path that proves it; or `None
 - **Acceptance:** one item per line, each a command or a path in backticks and the result
   that proves it; "works" or "looks right" proves nothing. No inline code (`node -e`,
   `python3 -c`): put the check in a test or a script. From T2 on, a diff compares with the
-  previous task's commit, not `main`.
+  previous task's commit, not `main`. A suite that listens on a port runs as
+  `./scripts/orca/check.sh --e2e`; a process check (`pgrep`, `ps`) goes into a test or is marked
+  `(gate)`.
   - `./scripts/orca/check.sh` ends with `CHECK OK`
   - `<test file>` covers <case>; `<page>` at <width> px matches `<reference screenshot>`
 - **Commit:** `Imperative subject, at most 72 characters`
