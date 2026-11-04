@@ -4,3 +4,8 @@ node_modules/
 .scratch/
 .worktrees/
 .npm-cache/
+e2e/site/.data/
+e2e/site/dist/
+e2e/site/.astro/
+e2e/site/node_modules/
+e2e/site/.emdash/

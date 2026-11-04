@@ -8,7 +8,7 @@ The package ships three optional components: `Picture.astro` for EmDash image fi
 
 | Runtime | Supported version |
 | --- | --- |
-| EmDash | 1.3.x |
+| EmDash | 1.3.x, 1.4.x |
 | Astro | 7.x |
 | Node.js | 26.x or later |
 

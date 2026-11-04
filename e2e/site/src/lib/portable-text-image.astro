@@ -1,0 +1,11 @@
+---
+import PortableTextImage from "@nimitzua/emdash-images/PortableTextImage.astro";
+
+const imageHashes = (Astro.locals as typeof Astro.locals & {
+	imageHashes?: Map<string, string>;
+}).imageHashes;
+const mediaId = Astro.props.node?.asset?._ref;
+const contentHash = typeof mediaId === "string" ? imageHashes?.get(mediaId) : undefined;
+---
+
+<PortableTextImage {...Astro.props} contentHash={contentHash} />
