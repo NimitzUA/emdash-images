@@ -12,9 +12,10 @@ adopts the package on its own side.
 
 ## Open
 
-1. **End-to-end test site — plan 017.** A fixture EmDash site in `e2e/site/`, built and
-   served by `npm run test:e2e` in CI: pages, `/_image`, the guard, `backfill`, warm-up and
-   cleanup over HTTP (owner, 2026-11-03).
+1. **Warm-up and `allowedDomains`** (plan 017 «Outcome»). On a site without
+   `security.allowedDomains` the sitemap lists `localhost:<port>` and warm-up silently finds no
+   pages beyond `/`; document it or make warm-up report it. Fixture and harness follow-ups in the
+   same Outcome.
 2. **Kit follow-up.** `scripts/orca/review.sh` line 65 should read `result.taskId` (plans 015
    and 016 «Outcome»); a change in the orca-setup kit and a re-render, by the owner.
 
@@ -141,3 +142,11 @@ adopts the package on its own side.
     `latest: '0.5.0'`. ADR-0007's re-run point checked: attempt 2, run before approval, failed
     at `npm stage publish` with `E409` and staged nothing new; recorded in ADR-0007 and
     `docs/RELEASING.md` «If the CI publish fails».
+20. **End-to-end test site — plan 017** (merge `7c6a2e9`). A fixture EmDash site in
+    `e2e/site/` (Astro, Node adapter, SQLite, local storage, the guard, `Picture`,
+    `PortableTextImage` and `PortableTextGallery` imported by published specifiers) is built and
+    served by `npm run test:e2e` (8 tests): AVIF and WebP sources and `/_image` variants, the
+    denied storage key, `backfill --write` versioning URLs with `v=`, immutable versioned
+    variants, warm-up twice and a `cleanup` dry run. CI runs it after `npm test`;
+    `docs/TESTING.md` describes both suites; README and SKILL name EmDash 1.3 and 1.4. Test,
+    CI and docs only; no release.

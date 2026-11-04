@@ -291,4 +291,82 @@ change to `exports`, `src/*.d.mts`, options or behaviour, so no `CHANGELOG.md` e
 
 ## Outcome
 
-Filled after merge, from `status.md`. The next plan reads this, not the run's conversation.
+Run `run_00975c2c396d`, 2026-11-03 to 2026-11-04, base `e96b7a0`.
+
+- **Merge:** `7c6a2e9` (`Merge branch 'task/017-e2e-site'`). Task commits: T1 `d072860`
+  (review 1 FIX, one fix round amending `406c4a9`, review 2 PASS), T2 `473c946` (review 1 FIX,
+  one fix round amending `dd78d69`, review 2 PASS), T3 `1001c85` (review 1 PASS), T4 `02ec4ea`
+  (review 1 PASS). Gates: `GATES OK` in the worktree; `npm run test:e2e` run twice in a row by
+  the architect outside the sandbox, both `ℹ tests 8` / `ℹ pass 8` / `ℹ fail 0`; no
+  `dist/server/entry.mjs` process left afterwards; `RELEASE OK 0.5.0`;
+  `git diff main --stat -- src .github/workflows/release.yml` empty; `package.json` diff only
+  `@astrojs/node` in `devDependencies` and `test:e2e` in `scripts`. After the merge `INSTALL OK`
+  and `VERIFY OK` on `main`.
+- **Decisions:**
+  - T1, "dependencies changed, run install": the architect ran `install-main.sh` in the
+    worktree (`INSTALL OK`).
+  - T2, "do the files on the Docs line belong to Ownership?": no, Docs names what to read;
+    Ownership is the Target files.
+  - T3, "`/sitemap.xml` is an empty sitemapindex; may another route be added?": no new route.
+    EmDash lists only collections with `has_seo = 1` and `routable = 1` in the sitemap index
+    (`emdash/src/api/handlers/seo.ts:115-123`), and `has_seo` comes from `supports: ["seo"]`
+    (`emdash/src/schema/registry.ts:567`, `:585`). The `posts` collection in the harness seed
+    gained `supports: ["seo"]` (inside T3 Ownership).
+- **Surprises:**
+  - The plan's facts list missed two EmDash and package behaviours the site depends on:
+    `warmPublicSite` always fetches `/` and counts a non-OK answer as a failure
+    (`src/warmup.mjs:298`, `:372-374`), so the fixture needs a home page; and the sitemap lists
+    only collections with `supports: ["seo"]`.
+  - Without `security.allowedDomains`, Astro builds `Request.url` as `localhost:<port>`
+    (`astro/dist/core/app/node.js:42-45`, `:80-89`), so sitemap `<loc>`s say `localhost`; the
+    T3 executor switched the harness request origin to `localhost` (server still binds
+    `127.0.0.1`). The reviewer judged it necessary and low-risk (Node 26 happy-eyeballs).
+  - `npm run test:e2e` cannot run in reviewer sandboxes: Astro's fonts plugin cannot listen
+    (`listen EPERM ... 0.0.0.0`), and after that failed build the process stays alive (open
+    build handles) until stopped. All five reviews marked it `NOT RUN`; the architect ran it at
+    the gates from an Orca terminal.
+  - `pgrep` fails in every sandbox (`sysmond service not found`); T2's "no server process left"
+    check was done with `ps` from the architect's gate script.
+  - The T1 review 1 reviewer stopped at a Claude Code prompt "Allow this read outside the
+    working directories?": its spec pointed it at the amended plan in the main checkout. The
+    owner answered it; later review specs carried the amended task lines themselves.
+  - The T1 fix executor wrote its report under the worktree's `.scratch/` instead of the
+    run folder named in its spec.
+  - 1Password failed to sign (`failed to fill whole buffer`) twice in executor terminals and
+    then in the architect's terminal, although `SIGN OK` at the start.
+- **Deviations:**
+  - Amendment `caf5a10` (T1): Target and Ownership gained
+    `e2e/site/src/lib/portable-text-image.astro` and
+    `e2e/site/src/lib/portable-text-gallery.astro`; Change dropped "or inline components".
+  - Amendment `af89cef` (T3): Target and Ownership gained `e2e/site/src/pages/index.astro`, a
+    minimal home page linking to `/posts/hello`.
+  - T1's first commit `406c4a9` and T2's fix amend `473c946` were made by the architect from the
+    executors' staged changes after the owner unlocked 1Password; content unchanged, both
+    reviewed.
+  - `.gitignore` also ignores `e2e/site/.emdash/` (generated migration manifest), a fifth entry
+    beyond T1's four; the reviewer judged it right.
+- **Follow-ups:**
+  - Product (next plan): on a real site with no `security.allowedDomains`, `warmLocalSite`
+    sends `Host: <EMDASH_SITE_URL host>` while the sitemap lists `localhost:<port>`, so warm-up
+    silently finds no pages beyond `/`. Document `allowedDomains` (or `site`) in `README.md` and
+    `SKILL.md`, or make warm-up report "sitemap lists no in-origin pages".
+  - Fixture: set `security.allowedDomains` or `site` in `e2e/site/astro.config.mjs` and go back
+    to `127.0.0.1` as request origin; `findFreePort` checks only `127.0.0.1`.
+  - Harness: a failed Astro build leaves `npm run test:e2e` hanging (fonts server, build
+    handles); close them in `buildSite()` or add `--test-force-exit`. The startup fetch has no
+    per-request timeout.
+  - Tests: "the fixture site builds" only checks that `dist/server/entry.mjs` exists, so a stale
+    `dist` passes; clear `dist` before the build. The `v=` check covers only `/_image?` URLs, so
+    an `<img src>` straight at `/_emdash/api/media/file/...` is not caught.
+  - Orca kit: reviewer roles cannot run a suite that listens on a port (`listen EPERM`) or
+    `pgrep`; plans whose Acceptance needs that should name it a gate the architect runs, or the
+    kit could give reviewers a host script for it.
+  - Signing: 1Password failed between commits in this run; the owner may lengthen the
+    1Password auto-lock or re-run `sign-probe.sh` before each task commit.
+  - CI: the e2e step runs for the first time on the next push; check the GitHub Actions run.
+- **Proposed rules:** none by the rule (no finding kind with the same cause in two reviews).
+  T1 review 1 had one `[defect]` (trailing-slash path compare) with an `[evidence]` note (only a
+  first run reported); T2 review 1 had two `[test]` findings in the same review (an assertion
+  over a pre-filtered list tested the filter's own condition; `v=` checked on `<source>` only).
+  Candidate if it recurs: "a check over a filtered list must not assert the filter's own
+  condition", and "an idempotence claim needs two consecutive runs in the report".
