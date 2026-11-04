@@ -77,7 +77,7 @@ publish.
 
 **Preconditions:**
 - `main` is clean: `git status --porcelain` prints nothing, `npm pkg get version` prints
-  `"0.5.0"`, `git log --oneline -n 1` shows `Record plan 017 outcome and update the roadmap`.
+  `"0.5.0"`, `git log --oneline -n 3` shows `Record plan 017 outcome and update the roadmap`.
 
 **Branch:** `task/018-warm-up-public-origin` · **Worktree:**
 `.worktrees/emdash-images/018-warm-up-public-origin`
